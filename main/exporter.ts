@@ -120,9 +120,11 @@ export async function startExport(
     }
     inputIdx += 1
     args.push('-i', abs)
+    // 循环铺满：先用 aloop 无限重复，再由 atrim 截到片段时长（顺序不能反）
+    const loopPart = a.loop ? 'aloop=loop=-1:size=2147483647,' : ''
     const chain =
       'aformat=sample_rates=44100:channel_layouts=stereo' +
-      `,atrim=0:${Math.max(0.01, a.durationMs / 1000).toFixed(3)}` +
+      `,${loopPart}atrim=0:${Math.max(0.01, a.durationMs / 1000).toFixed(3)}` +
       `,adelay=${delayMs(a.startMs)}` +
       `,volume=${Math.max(0, Math.min(1, a.volume)).toFixed(3)}`
     labels.push(`[${inputIdx}:a]${chain}[a${inputIdx}]`)

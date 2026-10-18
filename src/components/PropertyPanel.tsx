@@ -229,6 +229,25 @@ const PropertyPanel: React.FC = () => {
         </div>
       )}
 
+      {/* 音频类：循环铺满（BGM 拖长后自动重复，不受音频源长度限制） */}
+      {(track.type === 'sfx' || track.type === 'voice') && (
+        <div className="form-row">
+          <label className="radio" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <input
+              type="checkbox"
+              checked={clip.loop === true}
+              onChange={(e) => update({ loop: e.target.checked || undefined })}
+            />
+            🔁 循环铺满
+          </label>
+          <div className="form-hint">
+            {clip.loop
+              ? `可任意拉长；超过音频源（${(clip.sourceDuration ?? 0).toFixed(1)}s）后自动重复`
+              : `开启后可拖到超过音频源长度（当前 ${(clip.sourceDuration ?? 0).toFixed(1)}s）`}
+          </div>
+        </div>
+      )}
+
       <div style={{ display: 'flex', gap: 8, marginTop: 16, flexDirection: 'column' }}>
         {track.type === 'voice' && !clip.voiceFile && (
           <button

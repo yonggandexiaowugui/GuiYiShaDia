@@ -53,6 +53,8 @@ export function collectAudioTracks(tracks: Track[], materials: Material[]): Audi
         startMs: Math.round(clip.start * 1000),
         durationMs: Math.round(clip.duration * 1000),
         volume: Math.min(1, Math.max(0, clip.volume ?? 1)),
+        // 循环铺满：BGM 拖长后超出源长度的部分自动重复
+        loop: clip.loop === true,
       })
     }
   }

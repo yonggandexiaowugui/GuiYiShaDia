@@ -546,6 +546,8 @@ export const useStore = create<GuiYiState>((set, get) => {
       sourceDuration: dur,
       volume: 1,
       color: TRACK_COLORS[track.type],
+      // 素材标记为可循环（如 BGM）时，片段默认开启循环铺满
+      ...(m.loopFlag ? { loop: true } : {}),
     }
     set({
       tracks: st.tracks.map((t) =>
@@ -671,7 +673,13 @@ export const useStore = create<GuiYiState>((set, get) => {
           if (c.id !== clipId) return c
           if (edge === 'r') {
             const dur = Math.max(0.2, newValue - c.start)
-            const maxDur = c.sourceDuration && c.sourceDuration > 0 ? c.sourceDuration : Infinity
+            // 循环片段可任意拉长（超出音频源长度会重复播放）；其余封顶在音频源时长
+            const maxDur =
+              c.loop === true
+                ? Infinity
+                : c.sourceDuration && c.sourceDuration > 0
+                  ? c.sourceDuration
+                  : Infinity
             return { ...c, duration: Math.min(dur, maxDur) }
           }
           const right = c.start + c.duration

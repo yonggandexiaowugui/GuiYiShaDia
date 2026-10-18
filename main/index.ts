@@ -107,19 +107,24 @@ function createWindow(): void {
     log(`preload-error: ${p} ${err?.message ?? err}`),
   )
 
-  // 开发期自动化：GUIYI_AUTO_EXPORT=<输出 mp4 绝对路径> 时，页面加载后自动载入示例并导出，
-  // 便于「无界面」地验证导出链路产出的真实文件。仅未打包时生效。
-  if (!app.isPackaged && process.env.GUIYI_AUTO_EXPORT) {
-    mainWindow.webContents.once('did-finish-load', () => {
-      void runAutoExport(process.env.GUIYI_AUTO_EXPORT as string)
-    })
-  } else if (!app.isPackaged && process.env.GUIYI_AUTO_TEST === 'bgremove') {
+  // 开发期自动化入口。注意：GUIYI_AUTO_EXPORT 同时是导出对话框的旁路开关
+  // （见 ipc.ts 的 export:pickPath），因此 GUIYI_AUTO_TEST 分支必须优先判断。
+  const autoTest = app.isPackaged ? undefined : process.env.GUIYI_AUTO_TEST
+  if (autoTest === 'bgremove') {
     mainWindow.webContents.once('did-finish-load', () => {
       void runAutoBgRemove()
     })
-  } else if (!app.isPackaged && process.env.GUIYI_AUTO_TEST === 'imagegen') {
+  } else if (autoTest === 'imagegen') {
     mainWindow.webContents.once('did-finish-load', () => {
       void runAutoImageGen()
+    })
+  } else if (autoTest === 'loop') {
+    mainWindow.webContents.once('did-finish-load', () => {
+      void runAutoLoopTest()
+    })
+  } else if (!app.isPackaged && process.env.GUIYI_AUTO_EXPORT) {
+    mainWindow.webContents.once('did-finish-load', () => {
+      void runAutoExport(process.env.GUIYI_AUTO_EXPORT as string)
     })
   }
 
@@ -171,6 +176,83 @@ async function runAutoBgRemove(): Promise<void> {
     log(`autobg: done ${JSON.stringify(result)}`)
   } catch (e) {
     log(`autobg: failed ${e instanceof Error ? e.message : String(e)}`)
+  }
+}
+
+/** 自动化：BGM 循环铺满自检——搭最小工程，验证「未开循环被源时长封顶 / 开循环可拉长」并导出 */
+async function runAutoLoopTest(): Promise<void> {
+  const win = mainWindow
+  if (!win || win.isDestroyed()) return
+  log('autoloop: start')
+  try {
+    const result = await win.webContents.executeJavaScript(
+      `(async () => {
+         const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+         for (let i = 0; i < 100 && !window.__guiyiStore; i++) await wait(100);
+         if (!window.__guiyiStore) return { ok: false, message: 'store 未暴露' };
+         const s = () => window.__guiyiStore.getState();
+         const clipOf = (trackType, id) =>
+           s().tracks.find((t) => t.type === trackType)?.clips.find((c) => c.id === id);
+         const out = {};
+         await s().loadMaterials();
+         s().newProject();
+         await wait(300);
+
+         // 内置素材按 manifest 顺序播种，"音乐"排在最后；轮询到它出现才说明播种完成
+         let bgmMat = null;
+         for (let i = 0; i < 80; i++) {
+           await s().loadMaterials();
+           bgmMat = s().materials.find((m) => m.category === '音乐' && m.loopFlag);
+           if (bgmMat) break;
+           await wait(250);
+         }
+         const sceneTrack = s().tracks.find((t) => t.type === 'scene');
+         const sfxTrack = s().tracks.find((t) => t.type === 'sfx');
+         const sceneMat = s().materials.find((m) => m.category === '场景');
+         if (!sceneTrack || !sfxTrack || !sceneMat || !bgmMat) {
+           return { ok: false, message: '缺少场景素材或可循环 BGM 素材', sceneMat: !!sceneMat, bgmMat: !!bgmMat, total: s().materials.length };
+         }
+         out.bgmSource = bgmMat.name;
+
+         // 场景铺 0-30s，避免画面为空
+         const sc = s().addClip(sceneTrack.id, sceneMat.id, 0);
+         s().resizeClip(sceneTrack.id, sc.id, 'r', 30);
+
+         // BGM 入轨：应自动继承素材的 loopFlag
+         const bc = s().addClip(sfxTrack.id, bgmMat.id, 0);
+         await wait(700); // 等音频真实时长回写
+         const added = clipOf('sfx', bc.id);
+         out.inheritedLoop = added?.loop === true;
+         out.sourceDur = Math.round((added?.sourceDuration ?? 0) * 10) / 10;
+
+         // 关掉循环再尝试拉到 40s —— 应被音频源时长封顶
+         s().updateClip(sfxTrack.id, bc.id, { loop: undefined });
+         s().resizeClip(sfxTrack.id, bc.id, 'r', 40);
+         await wait(80);
+         out.cappedDuration = Math.round((clipOf('sfx', bc.id)?.duration ?? 0) * 10) / 10;
+
+         // 开启循环再拉到 40s —— 应允许超过音频源长度
+         s().updateClip(sfxTrack.id, bc.id, { loop: true });
+         s().resizeClip(sfxTrack.id, bc.id, 'r', 40);
+         await wait(80);
+         const stretched = clipOf('sfx', bc.id);
+         out.stretchedDuration = Math.round((stretched?.duration ?? 0) * 10) / 10;
+         out.totalSeconds = Math.round(s().tracks.reduce((m, t) => Math.max(m, ...t.clips.map((c) => c.start + c.duration), 0), 0) * 10) / 10;
+         // 导出时渲染进程收集到的音频项（loop 标记必须为真，才会走 aloop 滤镜）
+         out.audioClips = s().tracks
+           .filter((t) => t.type === 'voice' || t.type === 'sfx')
+           .flatMap((t) => t.clips.map((c) => ({ loop: c.loop === true, dur: Math.round(c.duration * 10) / 10, src: c.sourceDuration ?? null })));
+
+         await s().runExport();
+         out.export = s().exportDone;
+         out.ok = out.inheritedLoop === true && out.stretchedDuration > out.sourceDur && out.cappedDuration <= out.sourceDur + 0.2;
+         return out;
+       })()`,
+      true,
+    )
+    log(`autoloop: done ${JSON.stringify(result)}`)
+  } catch (e) {
+    log(`autoloop: failed ${e instanceof Error ? e.message : String(e)}`)
   }
 }
 

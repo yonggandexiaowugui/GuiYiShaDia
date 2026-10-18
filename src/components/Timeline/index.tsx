@@ -552,9 +552,15 @@ const Timeline: React.FC = () => {
                     const mat = materials.find((m) => m.id === c.materialId)
                     if (mat) waveUrl = window.api.assetUrl(mat.file_path)
                   }
+                  // 循环片段：波形按超出音频源的倍数平铺；否则只画前 fraction 段
+                  const isLoop = c.loop === true
                   const waveFraction =
-                    c.sourceDuration && c.sourceDuration > 0
+                    !isLoop && c.sourceDuration && c.sourceDuration > 0
                       ? Math.min(1, c.duration / c.sourceDuration)
+                      : 1
+                  const waveRepeat =
+                    isLoop && c.sourceDuration && c.sourceDuration > 0
+                      ? Math.max(1, Math.ceil(c.duration / c.sourceDuration - 1e-6))
                       : 1
                   // 配音片段：提示字幕是否被独立修改/关闭
                   const subtitleNote =
@@ -563,13 +569,14 @@ const Timeline: React.FC = () => {
                         ? '\n字幕：已关闭'
                         : `\n字幕：${c.subtitle}`
                       : ''
+                  const loopNote = isLoop ? '\n🔁 循环铺满' : ''
                   return (
                     <div
                       key={c.id}
                       data-clip-id={c.id}
                       className={`tl-clip${isSelected ? ' selected' : ''}${isDragging ? ' dragging' : ''}`}
                       style={{ left, width, background: TRACK_COLORS[track.type] }}
-                      title={`${CLIP_ICON[track.type]} ${c.name}\n${c.duration.toFixed(1)}s · 起点 ${c.start.toFixed(1)}s${subtitleNote}\n拖动移动 · 边缘拉伸 · 可跨轨道 · 右键菜单`}
+                      title={`${CLIP_ICON[track.type]} ${c.name}\n${c.duration.toFixed(1)}s · 起点 ${c.start.toFixed(1)}s${loopNote}${subtitleNote}\n拖动移动 · 边缘拉伸 · 可跨轨道 · 右键菜单`}
                       onPointerDown={(e) => onClipDown(e, track.id, c.id, c.duration)}
                       onClick={(e) => {
                         e.stopPropagation()
@@ -596,6 +603,7 @@ const Timeline: React.FC = () => {
                           width={Math.max(1, width - 2)}
                           height={26}
                           fraction={waveFraction}
+                          repeat={waveRepeat}
                         />
                       )}
                       <span className="tl-clip-text">

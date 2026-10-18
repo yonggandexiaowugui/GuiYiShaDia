@@ -167,6 +167,8 @@ export interface Clip {
   // 音频类扩展
   volume?: number
   sourceDuration?: number // 音频源真实时长；视觉类省略（可任意拉伸）
+  /** 循环铺满：片段时长可超过音频源长度，超出部分重复播放（BGM 素材默认开启） */
+  loop?: boolean
   // 配音专用
   text?: string // 配音台词（生成 TTS 的输入）
   /** 字幕文本：不设置时跟随配音台词；设为空串则不显示字幕（配音与字幕独立控制） */
@@ -364,6 +366,8 @@ export interface AudioTrackItem {
   startMs: number
   durationMs: number
   volume: number
+  /** 循环铺满：片段长于音频源时重复播放（BGM 用） */
+  loop?: boolean
 }
 
 export interface ExportStartOptions {

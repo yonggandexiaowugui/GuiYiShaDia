@@ -13,6 +13,10 @@ interface AudioItem {
   start: number
   duration: number
   volume: number
+  /** 循环铺满：片段长于音频源时重复播放 */
+  loop: boolean
+  /** 音频源真实时长（秒），循环取模用 */
+  sourceDuration: number
 }
 
 /** 收集轨道上所有需要出声的片段 */
@@ -30,10 +34,12 @@ function collectAudio(tracks: Track[], materials: Material[], assetUrl: (p: stri
           start: clip.start,
           duration: clip.duration,
           volume: clip.volume ?? 1,
+          loop: clip.loop === true,
+          sourceDuration: clip.sourceDuration ?? 0,
         })
         continue
       }
-      // 音效：来自素材库
+      // 音效 / BGM：来自素材库
       if (!clip.materialId) continue
       const mat = materials.find((m) => m.id === clip.materialId)
       if (!mat) continue
@@ -43,6 +49,8 @@ function collectAudio(tracks: Track[], materials: Material[], assetUrl: (p: stri
         start: clip.start,
         duration: clip.duration,
         volume: clip.volume ?? 1,
+        loop: clip.loop === true || mat.loopFlag === true,
+        sourceDuration: clip.sourceDuration ?? 0,
       })
     }
   }
@@ -66,15 +74,19 @@ class AudioEngine {
     this.assetUrl = fn
   }
 
-  private ensure(clipId: string, src: string): HTMLAudioElement {
+  private ensure(clipId: string, src: string, loop: boolean): HTMLAudioElement {
     let el = this.els.get(clipId)
-    if (el && el.dataset.src === src) return el
+    if (el && el.dataset.src === src) {
+      el.loop = loop
+      return el
+    }
     if (el) {
       el.pause()
       this.els.delete(clipId)
     }
     el = new Audio()
     el.preload = 'auto'
+    el.loop = loop
     el.dataset.src = src
     el.src = src
     this.els.set(clipId, el)
@@ -91,7 +103,7 @@ class AudioEngine {
 
     for (const item of items) {
       alive.add(item.clipId)
-      const el = this.ensure(item.clipId, item.src)
+      const el = this.ensure(item.clipId, item.src, item.loop)
       const offset = currentTime - item.start
       const active = playing && offset >= 0 && offset < item.duration
 
@@ -104,13 +116,23 @@ class AudioEngine {
       const vol = Math.min(1, Math.max(0, item.volume))
       if (el.volume !== vol) el.volume = vol
 
-      const target = Math.min(offset, Math.max(0, (el.duration || item.duration) - 0.05))
+      // 音频源真实时长（元素未就绪时退回片段记录的 sourceDuration）
+      const audioDur = Number.isFinite(el.duration) && el.duration > 0 ? el.duration : item.sourceDuration
+      // 循环：按源时长取模，超长片段自动重复；非循环：从头播到源结束
+      const target =
+        item.loop && audioDur > 0
+          ? offset % audioDur
+          : Math.min(offset, Math.max(0, (el.duration || item.duration) - 0.05))
+
       if (el.paused) {
         el.currentTime = target
         el.play().catch(() => undefined)
         this.playingIds.add(item.clipId)
-      } else if (Math.abs(el.currentTime - target) > DRIFT_TOLERANCE) {
-        el.currentTime = target
+      } else {
+        // 循环时按环形最短距离算偏差，避免跨圈误判为漂移
+        const raw = Math.abs(el.currentTime - target)
+        const drift = item.loop && audioDur > 0 ? Math.min(raw, audioDur - raw) : raw
+        if (drift > DRIFT_TOLERANCE) el.currentTime = target
       }
     }
 

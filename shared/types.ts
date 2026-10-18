@@ -4,10 +4,10 @@
 // ============================================================================
 
 /** 素材分类 */
-export type MaterialCategory = '场景' | '角色' | '表情' | '特效' | '音效'
+export type MaterialCategory = '场景' | '角色' | '表情' | '特效' | '音效' | '音乐'
 
 /** 分类顺序 */
-export const CATEGORIES: MaterialCategory[] = ['场景', '角色', '表情', '特效', '音效']
+export const CATEGORIES: MaterialCategory[] = ['场景', '角色', '表情', '特效', '音效', '音乐']
 
 /** "全部"分类的虚拟值 */
 export const CATEGORY_ALL = '全部' as const
@@ -168,7 +168,9 @@ export interface Clip {
   volume?: number
   sourceDuration?: number // 音频源真实时长；视觉类省略（可任意拉伸）
   // 配音专用
-  text?: string // 配音台词（生成 TTS 的输入，也作为字幕显示）
+  text?: string // 配音台词（生成 TTS 的输入）
+  /** 字幕文本：不设置时跟随配音台词；设为空串则不显示字幕（配音与字幕独立控制） */
+  subtitle?: string
   voiceFile?: string // TTS 生成的文件相对路径（voiceovers/xxx.mp3）
   color?: string // UI 显示色（覆盖默认轨道色）
 }
@@ -200,6 +202,7 @@ export const CATEGORY_TO_TRACK_TYPE: Record<MaterialCategory, TrackType> = {
   表情: 'expression',
   特效: 'effect',
   音效: 'sfx',
+  音乐: 'sfx', // BGM 复用音效轨（长音频片段）
 }
 
 /** 轨道类型 → 主题色（用于 clip 显示） */
@@ -317,6 +320,23 @@ export interface TTSConfig {
 export interface AIConfig {
   llm: LLMConfig
   tts: TTSConfig
+  /** AI 绘图（素材生成）：pollinations = 免配置公共源；custom = OpenAI 兼容 images 接口 */
+  image?: ImageGenConfig
+}
+
+export interface ImageGenConfig {
+  provider?: 'pollinations' | 'custom'
+  /** custom：OpenAI 兼容接口地址（如 https://api.xxx.com/v1） */
+  apiBase: string
+  apiKey: string
+  model: string
+}
+
+export interface ImageGenResult {
+  ok: boolean
+  message?: string
+  seconds?: number
+  material?: Material
 }
 
 export interface AIResult {
@@ -410,6 +430,8 @@ export interface GuiYiShaDiaoApi {
   importPSD: (filePath: string) => Promise<PsdLayerInfo[]>
   importAudio: (filePath: string) => Promise<Material>
   importPSDLayers: (filePath: string, items: PsdLayerImportItem[]) => Promise<Material[]>
+  /** 对素材库图片执行本地 AI 去背景，产出新素材（原图保留） */
+  removeBackground: (materialId: string) => Promise<Material>
   selectFiles: () => Promise<string[]>
   assetUrl: (relPath: string | null | undefined) => string
 
@@ -418,6 +440,10 @@ export interface GuiYiShaDiaoApi {
   saveAIConfig: (config: Partial<AIConfig>) => Promise<AIConfig>
   testLLM: (config: LLMConfig) => Promise<AIResult>
   testTTS: (config: TTSConfig) => Promise<TTSResult>
+  /** AI 生成图片素材（走设置里的绘图配置） */
+  generateImageMaterial: (prompt: string, category: MaterialCategory) => Promise<ImageGenResult>
+  /** 测试绘图配置连通性（不入库） */
+  testImageGen: (config: ImageGenConfig) => Promise<ImageGenResult>
   parseScript: (script: string, sampleShots?: Shot[]) => Promise<ParseScriptResult>
   regenerateShot: (shot: Shot) => Promise<RegenShotResult>
 

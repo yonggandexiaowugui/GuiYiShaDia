@@ -70,7 +70,7 @@ export async function seedBuiltinAssets(log: (m: string) => void): Promise<void>
       const relFile = path.join('assets', m.category, `${m.id}${ext}`).replace(/\\/g, '/')
       fs.mkdirSync(path.dirname(resolveAsset(relFile)), { recursive: true })
       fs.copyFileSync(src, resolveAsset(relFile))
-      const isAudio = m.category === '音效'
+      const isAudio = m.category === '音效' || m.category === '音乐'
       const thumbRel = isAudio ? null : await generateThumbnail(resolveAsset(relFile), m.id)
       addMaterial({
         id: m.id,

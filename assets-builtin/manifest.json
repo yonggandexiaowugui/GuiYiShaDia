@@ -241,6 +241,574 @@
       "file": "sfx-whoosh.wav",
       "maxDuration": 10,
       "loopFlag": false
+    },
+    {
+      "id": "builtin-char-oval-idle",
+      "name": "瓜子脸·平静",
+      "category": "角色",
+      "tags": [
+        "内置",
+        "瓜子脸",
+        "平静"
+      ],
+      "file": "char-oval-idle.png",
+      "minDuration": 0.8,
+      "maxDuration": 8
+    },
+    {
+      "id": "builtin-char-oval-happy",
+      "name": "瓜子脸·开心",
+      "category": "角色",
+      "tags": [
+        "内置",
+        "瓜子脸",
+        "开心"
+      ],
+      "file": "char-oval-happy.png",
+      "minDuration": 0.8,
+      "maxDuration": 8,
+      "emotionWeight": 1
+    },
+    {
+      "id": "builtin-char-oval-angry",
+      "name": "瓜子脸·愤怒",
+      "category": "角色",
+      "tags": [
+        "内置",
+        "瓜子脸",
+        "愤怒"
+      ],
+      "file": "char-oval-angry.png",
+      "minDuration": 0.8,
+      "maxDuration": 8,
+      "emotionWeight": -1
+    },
+    {
+      "id": "builtin-char-oval-shocked",
+      "name": "瓜子脸·惊讶",
+      "category": "角色",
+      "tags": [
+        "内置",
+        "瓜子脸",
+        "惊讶"
+      ],
+      "file": "char-oval-shocked.png",
+      "minDuration": 0.8,
+      "maxDuration": 8
+    },
+    {
+      "id": "builtin-char-oval-scared",
+      "name": "瓜子脸·害怕",
+      "category": "角色",
+      "tags": [
+        "内置",
+        "瓜子脸",
+        "害怕"
+      ],
+      "file": "char-oval-scared.png",
+      "minDuration": 0.8,
+      "maxDuration": 8,
+      "emotionWeight": -0.5
+    },
+    {
+      "id": "builtin-char-round-idle",
+      "name": "圆圆脸·平静",
+      "category": "角色",
+      "tags": [
+        "内置",
+        "圆圆脸",
+        "平静"
+      ],
+      "file": "char-round-idle.png",
+      "minDuration": 0.8,
+      "maxDuration": 8
+    },
+    {
+      "id": "builtin-char-round-happy",
+      "name": "圆圆脸·开心",
+      "category": "角色",
+      "tags": [
+        "内置",
+        "圆圆脸",
+        "开心"
+      ],
+      "file": "char-round-happy.png",
+      "minDuration": 0.8,
+      "maxDuration": 8,
+      "emotionWeight": 1
+    },
+    {
+      "id": "builtin-char-round-angry",
+      "name": "圆圆脸·愤怒",
+      "category": "角色",
+      "tags": [
+        "内置",
+        "圆圆脸",
+        "愤怒"
+      ],
+      "file": "char-round-angry.png",
+      "minDuration": 0.8,
+      "maxDuration": 8,
+      "emotionWeight": -1
+    },
+    {
+      "id": "builtin-char-round-shocked",
+      "name": "圆圆脸·惊讶",
+      "category": "角色",
+      "tags": [
+        "内置",
+        "圆圆脸",
+        "惊讶"
+      ],
+      "file": "char-round-shocked.png",
+      "minDuration": 0.8,
+      "maxDuration": 8
+    },
+    {
+      "id": "builtin-char-round-scared",
+      "name": "圆圆脸·害怕",
+      "category": "角色",
+      "tags": [
+        "内置",
+        "圆圆脸",
+        "害怕"
+      ],
+      "file": "char-round-scared.png",
+      "minDuration": 0.8,
+      "maxDuration": 8,
+      "emotionWeight": -0.5
+    },
+    {
+      "id": "builtin-scene-classroom",
+      "name": "教室",
+      "category": "场景",
+      "tags": [
+        "内置",
+        "场景",
+        "教室",
+        "校园"
+      ],
+      "file": "scene-classroom.png",
+      "minDuration": 1.5,
+      "maxDuration": 12,
+      "allowHardCut": true
+    },
+    {
+      "id": "builtin-scene-office",
+      "name": "办公室",
+      "category": "场景",
+      "tags": [
+        "内置",
+        "场景",
+        "办公室",
+        "公司",
+        "上班"
+      ],
+      "file": "scene-office.png",
+      "minDuration": 1.5,
+      "maxDuration": 12,
+      "allowHardCut": true
+    },
+    {
+      "id": "builtin-scene-subway",
+      "name": "地铁车厢",
+      "category": "场景",
+      "tags": [
+        "内置",
+        "场景",
+        "地铁",
+        "交通"
+      ],
+      "file": "scene-subway.png",
+      "minDuration": 1.5,
+      "maxDuration": 12,
+      "allowHardCut": true
+    },
+    {
+      "id": "builtin-scene-park",
+      "name": "白天公园",
+      "category": "场景",
+      "tags": [
+        "内置",
+        "场景",
+        "公园",
+        "白天",
+        "户外"
+      ],
+      "file": "scene-park.png",
+      "minDuration": 1.5,
+      "maxDuration": 12,
+      "allowHardCut": true
+    },
+    {
+      "id": "builtin-scene-rooftop",
+      "name": "天台",
+      "category": "场景",
+      "tags": [
+        "内置",
+        "场景",
+        "天台",
+        "楼顶",
+        "黄昏"
+      ],
+      "file": "scene-rooftop.png",
+      "minDuration": 1.5,
+      "maxDuration": 12,
+      "allowHardCut": true
+    },
+    {
+      "id": "builtin-scene-store",
+      "name": "便利店",
+      "category": "场景",
+      "tags": [
+        "内置",
+        "场景",
+        "便利店",
+        "商店",
+        "夜晚"
+      ],
+      "file": "scene-store.png",
+      "minDuration": 1.5,
+      "maxDuration": 12,
+      "allowHardCut": true
+    },
+    {
+      "id": "builtin-scene-netbar",
+      "name": "网吧",
+      "category": "场景",
+      "tags": [
+        "内置",
+        "场景",
+        "网吧",
+        "电脑",
+        "夜晚"
+      ],
+      "file": "scene-netbar.png",
+      "minDuration": 1.5,
+      "maxDuration": 12,
+      "allowHardCut": true
+    },
+    {
+      "id": "builtin-scene-homeyard",
+      "name": "老家院子",
+      "category": "场景",
+      "tags": [
+        "内置",
+        "场景",
+        "院子",
+        "老家",
+        "乡村"
+      ],
+      "file": "scene-homeyard.png",
+      "minDuration": 1.5,
+      "maxDuration": 12,
+      "allowHardCut": true
+    },
+    {
+      "id": "builtin-scene-livingroom",
+      "name": "客厅（白天）",
+      "category": "场景",
+      "tags": [
+        "内置",
+        "场景",
+        "客厅",
+        "家",
+        "白天"
+      ],
+      "file": "scene-livingroom.png",
+      "minDuration": 1.5,
+      "maxDuration": 12,
+      "allowHardCut": true
+    },
+    {
+      "id": "builtin-scene-hospital",
+      "name": "医院走廊",
+      "category": "场景",
+      "tags": [
+        "内置",
+        "场景",
+        "医院",
+        "走廊"
+      ],
+      "file": "scene-hospital.png",
+      "minDuration": 1.5,
+      "maxDuration": 12,
+      "allowHardCut": true
+    },
+    {
+      "id": "builtin-sfx-stinger",
+      "name": "惊吓弦乐",
+      "category": "音效",
+      "tags": [
+        "内置",
+        "惊吓",
+        "恐怖"
+      ],
+      "file": "sfx-stinger.wav",
+      "maxDuration": 10,
+      "loopFlag": false
+    },
+    {
+      "id": "builtin-sfx-glass",
+      "name": "玻璃碎裂",
+      "category": "音效",
+      "tags": [
+        "内置",
+        "碎裂",
+        "碰撞"
+      ],
+      "file": "sfx-glass.wav",
+      "maxDuration": 10,
+      "loopFlag": false
+    },
+    {
+      "id": "builtin-sfx-applause",
+      "name": "掌声",
+      "category": "音效",
+      "tags": [
+        "内置",
+        "人群",
+        "鼓励"
+      ],
+      "file": "sfx-applause.wav",
+      "maxDuration": 10,
+      "loopFlag": false
+    },
+    {
+      "id": "builtin-sfx-cheer",
+      "name": "人群欢呼",
+      "category": "音效",
+      "tags": [
+        "内置",
+        "人群",
+        "欢呼"
+      ],
+      "file": "sfx-cheer.wav",
+      "maxDuration": 10,
+      "loopFlag": false
+    },
+    {
+      "id": "builtin-sfx-drums",
+      "name": "鼓点（加速）",
+      "category": "音效",
+      "tags": [
+        "内置",
+        "打击",
+        "紧张"
+      ],
+      "file": "sfx-drums.wav",
+      "maxDuration": 10,
+      "loopFlag": false
+    },
+    {
+      "id": "builtin-sfx-dooropen",
+      "name": "开门",
+      "category": "音效",
+      "tags": [
+        "内置",
+        "门",
+        "日常"
+      ],
+      "file": "sfx-dooropen.wav",
+      "maxDuration": 10,
+      "loopFlag": false
+    },
+    {
+      "id": "builtin-sfx-slam",
+      "name": "关门砰",
+      "category": "音效",
+      "tags": [
+        "内置",
+        "门",
+        "撞击"
+      ],
+      "file": "sfx-slam.wav",
+      "maxDuration": 10,
+      "loopFlag": false
+    },
+    {
+      "id": "builtin-sfx-steps",
+      "name": "脚步声",
+      "category": "音效",
+      "tags": [
+        "内置",
+        "走路",
+        "日常"
+      ],
+      "file": "sfx-steps.wav",
+      "maxDuration": 10,
+      "loopFlag": false
+    },
+    {
+      "id": "builtin-sfx-phone",
+      "name": "电话铃",
+      "category": "音效",
+      "tags": [
+        "内置",
+        "电话",
+        "日常"
+      ],
+      "file": "sfx-phone.wav",
+      "maxDuration": 10,
+      "loopFlag": false
+    },
+    {
+      "id": "builtin-sfx-alarm",
+      "name": "闹钟",
+      "category": "音效",
+      "tags": [
+        "内置",
+        "闹钟",
+        "日常"
+      ],
+      "file": "sfx-alarm.wav",
+      "maxDuration": 10,
+      "loopFlag": false
+    },
+    {
+      "id": "builtin-sfx-gasp",
+      "name": "倒吸气",
+      "category": "音效",
+      "tags": [
+        "内置",
+        "惊讶",
+        "呼吸"
+      ],
+      "file": "sfx-gasp.wav",
+      "maxDuration": 10,
+      "loopFlag": false
+    },
+    {
+      "id": "builtin-sfx-buzz",
+      "name": "嗡嗡（尴尬）",
+      "category": "音效",
+      "tags": [
+        "内置",
+        "尴尬",
+        "氛围"
+      ],
+      "file": "sfx-buzz.wav",
+      "maxDuration": 10,
+      "loopFlag": false
+    },
+    {
+      "id": "builtin-sfx-beep",
+      "name": "消音哔——",
+      "category": "音效",
+      "tags": [
+        "内置",
+        "消音",
+        "搞笑"
+      ],
+      "file": "sfx-beep.wav",
+      "maxDuration": 10,
+      "loopFlag": false
+    },
+    {
+      "id": "builtin-sfx-boing",
+      "name": "弹簧（滑稽）",
+      "category": "音效",
+      "tags": [
+        "内置",
+        "滑稽",
+        "弹跳"
+      ],
+      "file": "sfx-boing.wav",
+      "maxDuration": 10,
+      "loopFlag": false
+    },
+    {
+      "id": "builtin-sfx-ding",
+      "name": "叮（点子/金币）",
+      "category": "音效",
+      "tags": [
+        "内置",
+        "提示",
+        "金币"
+      ],
+      "file": "sfx-ding.wav",
+      "maxDuration": 10,
+      "loopFlag": false
+    },
+    {
+      "id": "builtin-bgm-eerie",
+      "name": "BGM·诡异氛围",
+      "category": "音乐",
+      "tags": [
+        "内置",
+        "BGM",
+        "诡异",
+        "恐怖"
+      ],
+      "file": "bgm-eerie.wav",
+      "loopFlag": true,
+      "minDuration": 4,
+      "maxDuration": 300,
+      "sourceSeconds": 24
+    },
+    {
+      "id": "builtin-bgm-tense",
+      "name": "BGM·紧张鼓点",
+      "category": "音乐",
+      "tags": [
+        "内置",
+        "BGM",
+        "紧张",
+        "追逐"
+      ],
+      "file": "bgm-tense.wav",
+      "loopFlag": true,
+      "minDuration": 4,
+      "maxDuration": 300,
+      "sourceSeconds": 16
+    },
+    {
+      "id": "builtin-bgm-funny",
+      "name": "BGM·滑稽蹦跳",
+      "category": "音乐",
+      "tags": [
+        "内置",
+        "BGM",
+        "搞笑",
+        "日常"
+      ],
+      "file": "bgm-funny.wav",
+      "loopFlag": true,
+      "minDuration": 4,
+      "maxDuration": 300,
+      "sourceSeconds": 14.55
+    },
+    {
+      "id": "builtin-bgm-sad",
+      "name": "BGM·悲伤弦乐",
+      "category": "音乐",
+      "tags": [
+        "内置",
+        "BGM",
+        "悲伤",
+        "抒情"
+      ],
+      "file": "bgm-sad.wav",
+      "loopFlag": true,
+      "minDuration": 4,
+      "maxDuration": 300,
+      "sourceSeconds": 27.43
+    },
+    {
+      "id": "builtin-bgm-daily",
+      "name": "BGM·日常轻快",
+      "category": "音乐",
+      "tags": [
+        "内置",
+        "BGM",
+        "日常",
+        "轻松"
+      ],
+      "file": "bgm-daily.wav",
+      "loopFlag": true,
+      "minDuration": 4,
+      "maxDuration": 300,
+      "sourceSeconds": 19.2
     }
   ]
 }

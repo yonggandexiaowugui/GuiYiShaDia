@@ -8,6 +8,7 @@ import { useStore } from '../services/store'
 import { BUILTIN_CLIPS, BUILTIN_RIG } from '@shared/rig'
 import { BUILTIN_RIGGED_CHARACTER, RIG_PART_LABELS, RIG_PART_ORDER } from '@shared/characterRig'
 import type { CharacterRig } from '@shared/characterRig'
+import type { Material } from '@shared/types'
 import { buildWorldPose, samplePose } from '../services/rigEvaluator'
 import { partUrl, rigPartFiles } from '../services/rigParts'
 import { drawRiggedCharacterPreview } from '../services/rigDraw'
@@ -23,6 +24,16 @@ const IMG_CATEGORIES = ['场景', '角色', '表情', '特效']
 
 type SlotKind = 'part' | 'expr'
 
+/** 从素材 meta 解析内联 rig（编辑模式预填用；非绑骨素材返回 null） */
+function rigOf(m: Material | undefined): CharacterRig | null {
+  try {
+    const meta = m?.meta ? (JSON.parse(m.meta) as { rigged?: boolean; rig?: CharacterRig }) : null
+    return meta?.rigged && meta.rig ? meta.rig : null
+  } catch {
+    return null
+  }
+}
+
 function drawBackground(ctx: CanvasRenderingContext2D): void {
   ctx.clearRect(0, 0, CANVAS_W, CANVAS_H)
   ctx.fillStyle = '#0e1013' // 与 RigLab 预览底色一致（canvas 不支持 CSS 变量）
@@ -35,14 +46,31 @@ function drawBackground(ctx: CanvasRenderingContext2D): void {
   ctx.stroke()
 }
 
-const RigCharBuilderDialog: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+const RigCharBuilderDialog: React.FC<{ onClose: () => void; editMaterial?: Material }> = ({ onClose, editMaterial }) => {
   const materials = useStore((s) => s.materials)
   const loadMaterials = useStore((s) => s.loadMaterials)
   const pushToast = useStore((s) => s.pushToast)
 
-  const [name, setName] = useState('')
-  const [slots, setSlots] = useState<Record<string, string | undefined>>({})
-  const [exprSlots, setExprSlots] = useState<Record<string, string | undefined>>({})
+  // 编辑模式：用素材内联 rig 预填槽位（部件值保留原相对路径，保存时直接读旧部件图）
+  const [name, setName] = useState(editMaterial?.name ?? '')
+  const [slots, setSlots] = useState<Record<string, string | undefined>>(() => {
+    const rig = rigOf(editMaterial)
+    if (!rig) return {}
+    const out: Record<string, string> = {}
+    for (const p of rig.parts) {
+      const base = p.image.split('/').pop()!
+      if ((RIG_PART_ORDER as string[]).includes(base)) out[base] = p.image
+    }
+    return out
+  })
+  const [exprSlots, setExprSlots] = useState<Record<string, string | undefined>>(() => {
+    const rig = rigOf(editMaterial)
+    if (!rig) return {}
+    // 含 '/' 的是用户选过的图；纯文件名是内置 bundled 表情，不预填
+    const out: Record<string, string> = {}
+    for (const e of rig.expressions) if (e.image.includes('/')) out[e.id] = e.image
+    return out
+  })
   const [sel, setSel] = useState<{ kind: SlotKind; key: string }>({ kind: 'part', key: 'head.png' })
   const [clipId, setClipId] = useState(BUILTIN_CLIPS[0].id)
   const [exprId, setExprId] = useState(BUILTIN_RIGGED_CHARACTER.expressions[0].id)
@@ -159,7 +187,20 @@ const RigCharBuilderDialog: React.FC<{ onClose: () => void }> = ({ onClose }) =>
       const exprs = Object.fromEntries(Object.entries(exprSlots).filter(([, v]) => !!v)) as Record<string, string>
       const res = await window.api.buildRigCharacter(name, parts, exprs)
       if (res.ok && res.material) {
-        setMsg({ kind: 'ok', text: `已生成「${res.material.name}」并加入角色分类。拖入角色轨道即可播放骨骼动作。` })
+        // 编辑模式：新角色入库成功后再删旧的（连带清部件目录），失败则原角色保留
+        if (editMaterial) {
+          try {
+            await window.api.deleteMaterial(editMaterial.id)
+          } catch {
+            /* 旧角色删除失败不阻塞 */
+          }
+        }
+        setMsg({
+          kind: 'ok',
+          text: editMaterial
+            ? `已更新「${res.material.name}」（原角色已替换）。拖入角色轨道即可播放骨骼动作。`
+            : `已生成「${res.material.name}」并加入角色分类。拖入角色轨道即可播放骨骼动作。`,
+        })
         await loadMaterials()
       } else {
         setMsg({ kind: 'err', text: res.message || '保存失败' })
@@ -173,7 +214,11 @@ const RigCharBuilderDialog: React.FC<{ onClose: () => void }> = ({ onClose }) =>
 
   const slotChip = (kind: SlotKind, key: string, label: string, value: string | undefined): React.ReactNode => {
     const active = sel.kind === kind && sel.key === key
-    const nameOf = value ? (imgMaterials.find((m) => m.file_path === value)?.name ?? '已选素材') : kind === 'expr' ? '内置' : '内置小菱'
+    const nameOf = value
+      ? (imgMaterials.find((m) => m.file_path === value)?.name ?? value.split('/').pop() ?? '已选素材')
+      : kind === 'expr'
+        ? '内置'
+        : '内置小菱'
     return (
       <button
         key={`${kind}-${key}`}
@@ -215,7 +260,7 @@ const RigCharBuilderDialog: React.FC<{ onClose: () => void }> = ({ onClose }) =>
     <div className="modal-overlay" onClick={() => !busy && onClose()}>
       <div className="modal" style={{ width: 860 }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
-          <span>组装绑骨角色</span>
+          <span>{editMaterial ? `重新组装 · ${editMaterial.name}` : '组装绑骨角色'}</span>
           <button className="ghost" onClick={onClose} disabled={busy}>✕</button>
         </div>
         <div className="modal-body" style={{ display: 'flex', gap: 14, alignItems: 'stretch' }}>
@@ -313,7 +358,13 @@ const RigCharBuilderDialog: React.FC<{ onClose: () => void }> = ({ onClose }) =>
               </div>
             </div>
             <button className="primary" style={{ width: '100%' }} onClick={() => void save()} disabled={busy || !allFilled || !name.trim()}>
-              {busy ? '⏳ 保存中…' : allFilled ? '💾 保存为绑骨角色素材' : `${RIG_PART_ORDER.length} 个部件槽全部选图后可保存`}
+              {busy
+                ? '⏳ 保存中…'
+                : !allFilled
+                  ? `${RIG_PART_ORDER.length} 个部件槽全部选图后可保存`
+                  : editMaterial
+                    ? '💾 保存修改（替换原角色）'
+                    : '💾 保存为绑骨角色素材'}
             </button>
             {msg && (
               <div className={`preview-msg ${msg.kind}`}>

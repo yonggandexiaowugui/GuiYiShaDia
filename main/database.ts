@@ -217,10 +217,20 @@ export function updateMaterial(id: string, input: UpdateMaterialInput): Material
 
 export function deleteMaterial(id: string): boolean {
   const d = getDb()
-  const row = d.prepare('SELECT file_path, thumbnail_path FROM materials WHERE id = ?').get(id) as
-    | { file_path: string; thumbnail_path: string | null }
+  const row = d.prepare('SELECT file_path, thumbnail_path, meta FROM materials WHERE id = ?').get(id) as
+    | { file_path: string; thumbnail_path: string | null; meta: string | null }
     | undefined
   if (!row) return false
+  // 绑骨角色（组装 / AI 生成）：部件目录在 assets/rig-characters/<x>/，整目录连带删除
+  try {
+    const meta = row.meta ? (JSON.parse(row.meta) as { rigged?: boolean }) : null
+    const dir = path.posix.dirname(row.file_path.replace(/\\/g, '/'))
+    if (meta?.rigged && /^assets\/rig-characters\/[^/]+$/.test(dir)) {
+      fs.rmSync(path.join(getDataDir(), dir), { recursive: true, force: true })
+    }
+  } catch {
+    /* 目录可能已不存在 */
+  }
   // 先删磁盘文件（相对 dataDir），再删记录
   for (const rel of [row.file_path, row.thumbnail_path]) {
     if (!rel) continue

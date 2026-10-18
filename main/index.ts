@@ -361,35 +361,58 @@ async function runAutoRigBuild(): Promise<void> {
          for (let i = 0; i < 100 && !window.__guiyiStore; i++) await wait(100);
          if (!window.__guiyiStore) return { ok: false, message: 'store 未暴露' };
          const s = () => window.__guiyiStore.getState();
-         const isSource = (m, src) => { try { return JSON.parse(m.meta || '{}').source === src } catch { return false } };
+         const out = {};
+         // 与 shared/characterRig.ts 的 RIG_PART_ORDER 保持同步（11 部件）
+         const PARTS = ['head.png','back-hair.png','front-hair.png','torso.png','hip.png','neck.png','upper-arm.png','forearm.png','hand.png','thigh.png','shin.png'];
+         // 来源图：任意已播种的内置图片素材（内容无关，组装时 sharp 会拉伸到部件画布）
          let src = null;
-         for (let i = 0; i < 60 && !src; i++) { await wait(500); src = s().materials.find((m) => isSource(m, 'ai-rig')); }
-         if (!src) return { ok: false, message: '素材库无 ai-rig 素材（需先跑 GUIYI_AUTO_TEST=riggen）' };
-         const srcRig = JSON.parse(src.meta).rig;
-         const parts = {};
-         for (const p of srcRig.parts) parts[p.image.split('/').pop()] = p.image;
-         const res = await window.api.buildRigCharacter('自动组装·绑骨角色', parts, {});
-         const out = { res: { ok: res.ok, message: res.message, name: res.material?.name } };
-         if (res.ok && res.material) {
+         for (let i = 0; i < 60 && !src; i++) {
            await s().loadMaterials();
-           const mat = s().materials.find((m) => isSource(m, 'user-rig'));
-           if (!mat) return { ...out, ok: false, message: '入库后未找到 user-rig 素材' };
-           const rig = JSON.parse(mat.meta).rig;
-           out.partCount = rig.parts.length;
-           const files = [...new Set(rig.parts.map((p) => p.image))];
-           out.uniqueParts = files.length;
-           out.bytes = {};
-           for (const f of files) {
-             const resp = await fetch(window.api.assetUrl(f));
-             out.bytes[f.split('/').pop()] = (await resp.arrayBuffer()).byteLength;
-           }
-           const exprs = rig.expressions.filter((e) => e.image.includes('/'));
-           out.customExprs = exprs.length;
-           const thumb = await fetch(window.api.assetUrl(mat.thumbnail_path));
-           out.thumbBytes = (await thumb.arrayBuffer()).byteLength;
-           out.ok = out.partCount === 16 && out.uniqueParts === 11 &&
-             Object.values(out.bytes).every((n) => n > 200) && out.thumbBytes > 100;
+           src = s().materials.find((m) => m.category === '场景' && /\\.png$/i.test(m.file_path));
+           if (!src) await wait(500);
          }
+         if (!src) return { ok: false, message: '素材库无可用场景图（播种未完成？）' };
+         const parts = {};
+         for (const f of PARTS) parts[f] = src.file_path;
+         const probeUrl = (f) => window.api.assetUrl(f) + '?t=' + Date.now();
+
+         // 1) 新建组装
+         const res = await window.api.buildRigCharacter('自动组装·绑骨角色', parts, {});
+         out.build = { ok: res.ok, message: res.message };
+         if (!res.ok || !res.material) return { ...out, ok: false };
+         await s().loadMaterials();
+         const rig = JSON.parse(res.material.meta).rig;
+         out.partCount = rig.parts.length;
+         const files = [...new Set(rig.parts.map((p) => p.image))];
+         out.uniqueParts = files.length;
+         let bytesOk = true;
+         for (const f of files) {
+           const resp = await fetch(probeUrl(f));
+           if ((await resp.arrayBuffer()).byteLength < 200) bytesOk = false;
+         }
+         out.partBytesOk = bytesOk;
+
+         // 2) 再编辑保存路径：用旧角色的部件图作为来源重新组装（编辑模式保存即此路径）
+         const parts2 = {};
+         for (const p of rig.parts) parts2[p.image.split('/').pop()] = p.image;
+         const res2 = await window.api.buildRigCharacter('自动组装·再编辑', parts2, {});
+         out.rebuild = { ok: res2.ok, message: res2.message };
+
+         // 3) 连带删除：删素材后部件目录应整体消失（部件图不再可达）
+         const goneChecks = [];
+         for (const m of [res.material, res2.material].filter(Boolean)) {
+           const probe = JSON.parse(m.meta).rig.parts[0].image;
+           await window.api.deleteMaterial(m.id);
+           let remaining = 0;
+           try {
+             const resp = await fetch(probeUrl(probe));
+             remaining = (await resp.arrayBuffer()).byteLength;
+           } catch { /* 不可达即视为已删除 */ }
+           goneChecks.push(remaining < 200);
+         }
+         out.deleteCleansDir = goneChecks.every(Boolean);
+         out.ok = out.build.ok && out.partCount === 16 && out.uniqueParts === 11 &&
+           out.partBytesOk && out.rebuild.ok === true && out.deleteCleansDir;
          return out;
        })()`,
       true,

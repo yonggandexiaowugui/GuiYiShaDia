@@ -33,7 +33,8 @@ const MaterialLibrary: React.FC = () => {
   const [ctxMenu, setCtxMenu] = useState<CtxMenu | null>(null)
   const [aiDialog, setAiDialog] = useState(false)
   const [rigDialog, setRigDialog] = useState(false)
-  const [rigBuilder, setRigBuilder] = useState(false)
+  /** 'new' = 新建组装；Material = 重新组装（编辑模式） */
+  const [rigBuilder, setRigBuilder] = useState<'new' | Material | null>(null)
 
   useEffect(() => {
     void loadMaterials()
@@ -97,6 +98,23 @@ const MaterialLibrary: React.FC = () => {
     void window.api.showItemInFolder(m.file_path)
   }
 
+  /** 用户组装的绑骨角色（AI 生成的几何是内联自有的，回填内置几何会错位，不开放） */
+  const isUserRig = (m: Material): boolean => {
+    try {
+      const meta = m.meta ? (JSON.parse(m.meta) as { rigged?: boolean; source?: string }) : null
+      return meta?.rigged === true && meta?.source === 'user-rig'
+    } catch {
+      return false
+    }
+  }
+
+  const ctxReassemble = (): void => {
+    if (!ctxMenu) return
+    const m = ctxMenu.material
+    setCtxMenu(null)
+    setRigBuilder(m)
+  }
+
   const ctxDelete = (): void => {
     if (!ctxMenu) return
     const m = ctxMenu.material
@@ -155,7 +173,7 @@ const MaterialLibrary: React.FC = () => {
         <button className="primary" onClick={() => setRigDialog(true)} title="AI 逐部件生成可骨骼驱动的绑骨角色">
           🦴 AI 绑骨角色
         </button>
-        <button className="primary" onClick={() => setRigBuilder(true)} title="从素材库选图组装绑骨角色（骨骼自动对齐）">
+        <button className="primary" onClick={() => setRigBuilder('new')} title="从素材库选图组装绑骨角色（骨骼自动对齐）">
           🧩 组装绑骨角色
         </button>
         <button className="primary" onClick={() => void importFiles()} disabled={importing}>
@@ -203,7 +221,12 @@ const MaterialLibrary: React.FC = () => {
 
       {aiDialog && <AIGenDialog onClose={() => setAiDialog(false)} />}
       {rigDialog && <AIRigCharDialog onClose={() => setRigDialog(false)} />}
-      {rigBuilder && <RigCharBuilderDialog onClose={() => setRigBuilder(false)} />}
+      {rigBuilder && (
+        <RigCharBuilderDialog
+          editMaterial={rigBuilder === 'new' ? undefined : rigBuilder}
+          onClose={() => setRigBuilder(null)}
+        />
+      )}
 
       {ctxMenu && (
         <div className="ctx-menu" style={{ left: ctxMenu.x, top: ctxMenu.y }}>
@@ -220,6 +243,7 @@ const MaterialLibrary: React.FC = () => {
           <button onClick={ctxRemoveBg} disabled={bgRemoving !== null}>
             {bgRemoving === ctxMenu.material.id ? '✂ 去背景中…' : '✂ 一键去背景'}
           </button>
+          {isUserRig(ctxMenu.material) && <button onClick={ctxReassemble}>🧩 重新组装</button>}
           <button onClick={ctxShowInFolder}>📂 打开所在文件夹</button>
           <button className="danger" onClick={ctxDelete}>
             🗑 删除素材

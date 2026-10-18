@@ -3,6 +3,7 @@ import { useStore } from '../services/store'
 import { CATEGORIES, CATEGORY_ALL } from '@shared/types'
 import type { Material, MaterialCategory } from '@shared/types'
 import AIGenDialog from './AIGenDialog'
+import AIRigCharDialog from './AIRigCharDialog'
 
 const TABS: (typeof CATEGORY_ALL | MaterialCategory)[] = [CATEGORY_ALL, ...CATEGORIES]
 
@@ -30,6 +31,7 @@ const MaterialLibrary: React.FC = () => {
 
   const [ctxMenu, setCtxMenu] = useState<CtxMenu | null>(null)
   const [aiDialog, setAiDialog] = useState(false)
+  const [rigDialog, setRigDialog] = useState(false)
 
   useEffect(() => {
     void loadMaterials()
@@ -148,6 +150,9 @@ const MaterialLibrary: React.FC = () => {
         <button className="primary" onClick={() => setAiDialog(true)} title="AI 生成素材（免配置公共源 / 自定义 API）">
           ✨ AI 生成
         </button>
+        <button className="primary" onClick={() => setRigDialog(true)} title="AI 逐部件生成可骨骼驱动的绑骨角色">
+          🦴 AI 绑骨角色
+        </button>
         <button className="primary" onClick={() => void importFiles()} disabled={importing}>
           {importing ? '导入中…' : '导入'}
         </button>
@@ -192,6 +197,7 @@ const MaterialLibrary: React.FC = () => {
       </div>
 
       {aiDialog && <AIGenDialog onClose={() => setAiDialog(false)} />}
+      {rigDialog && <AIRigCharDialog onClose={() => setRigDialog(false)} />}
 
       {ctxMenu && (
         <div className="ctx-menu" style={{ left: ctxMenu.x, top: ctxMenu.y }}>

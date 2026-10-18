@@ -11,8 +11,19 @@ const PART_URLS = import.meta.glob('/src/assets/rig-character/*.png', {
   import: 'default',
 }) as Record<string, string>
 
-/** 按文件名解析部件图 URL；缺失（生成脚本未跑）返回空串 */
-export function partUrl(file: string): string {
+type AssetUrlFn = (p: string) => string
+
+/** 缺省资源解析：走 preload 暴露的 window.api.assetUrl（guiyi:// 协议） */
+const fallbackAssetUrl: AssetUrlFn = (p) =>
+  typeof window !== 'undefined' && window.api ? window.api.assetUrl(p) : p
+
+/**
+ * 按文件名解析部件图 URL；缺失（生成脚本未跑）返回空串
+ * - 内置角色：image 为纯文件名 → 查构建期 glob
+ * - AI 角色（P4）：image 为相对资源路径（assets/rig-characters/...）→ 走 assetUrl
+ */
+export function partUrl(file: string, assetUrl: AssetUrlFn = fallbackAssetUrl): string {
+  if (file.includes('/')) return assetUrl(file)
   for (const [p, url] of Object.entries(PART_URLS)) {
     if (p.endsWith('/' + file)) return url
   }
@@ -30,9 +41,9 @@ export function rigPartFiles(charRig: CharacterRig): string[] {
 }
 
 /** 该角色全部部件图的已解析 URL（预热用） */
-export function rigPartUrls(charRig: CharacterRig): string[] {
+export function rigPartUrls(charRig: CharacterRig, assetUrl?: AssetUrlFn): string[] {
   return rigPartFiles(charRig)
-    .map((f) => partUrl(f))
+    .map((f) => partUrl(f, assetUrl))
     .filter((u) => u !== '')
 }
 
@@ -44,6 +55,6 @@ export const RIG_DRAW_ORDER = [
 ]
 
 /** 检查某角色的部件图是否全部就绪（生成脚本未跑时为 false） */
-export function riggedAvailable(charRig: CharacterRig): boolean {
-  return rigPartFiles(charRig).every((f) => partUrl(f) !== '')
+export function riggedAvailable(charRig: CharacterRig, assetUrl?: AssetUrlFn): boolean {
+  return rigPartFiles(charRig).every((f) => partUrl(f, assetUrl) !== '')
 }

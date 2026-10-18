@@ -343,6 +343,17 @@ export interface ImageGenResult {
   material?: Material
 }
 
+/** AI 绑骨角色（P4）逐部件生成进度 */
+export interface RigCharacterProgress {
+  /** 当前第几步（1 起） */
+  step: number
+  total: number
+  /** 部件文件名（head.png 等） */
+  part: string
+  /** 部件中文名（头部 / 大臂…） */
+  label: string
+}
+
 export interface AIResult {
   ok: boolean
   message: string
@@ -450,6 +461,10 @@ export interface GuiYiShaDiaoApi {
   generateImageMaterial: (prompt: string, category: MaterialCategory) => Promise<ImageGenResult>
   /** 测试绘图配置连通性（不入库） */
   testImageGen: (config: ImageGenConfig) => Promise<ImageGenResult>
+  /** AI 生成绑骨角色（P4）：逐部件生成 → 白底抠图 → 裁入 manifest 画布 → 入库为可骨骼渲染素材 */
+  generateRigCharacter: (name: string, style: string) => Promise<ImageGenResult>
+  /** 绑骨角色逐部件生成进度 */
+  onRigCharacterProgress: (cb: (p: RigCharacterProgress) => void) => () => void
   parseScript: (script: string, sampleShots?: Shot[]) => Promise<ParseScriptResult>
   regenerateShot: (shot: Shot) => Promise<RegenShotResult>
 

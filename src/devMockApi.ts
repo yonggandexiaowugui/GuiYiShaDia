@@ -10,6 +10,7 @@ import type {
   Shot,
   CATEGORY_ALL,
 } from '@shared/types'
+import { BUILTIN_RIGGED_CHARACTER } from '@shared/characterRig'
 
 function svg(w: number, h: number, body: string): string {
   return `data:image/svg+xml,${encodeURIComponent(
@@ -92,6 +93,17 @@ const MOCK_MATERIALS: Material[] = [
   {
     ...makeMaterial('b-char-rigged-xiaofang', '小方·绑骨', '角色', ['内置', '绑骨', '骨骼'], charSvg('小方', '#465a7d')),
     meta: JSON.stringify({ source: 'builtin', rigged: true, characterRigId: 'xiaofang' }),
+  },
+  // 内联 rig 绑骨角色（P4）：模拟 AI 生成产物——manifest 直接存在 meta.rig 里，
+  // 部件图复用小方的内置图（纯文件名走 glob），验证 resolveCharacterRig 内联路径
+  {
+    ...makeMaterial('b-char-rigged-inline', '小方·AI内联骨骼', '角色', ['内置', '绑骨', 'AI模拟'], charSvg('内联', '#7d5a46')),
+    meta: JSON.stringify({
+      source: 'ai-rig',
+      rigged: true,
+      characterRigId: 'xiaofang-inline',
+      rig: { ...BUILTIN_RIGGED_CHARACTER, id: 'xiaofang-inline', name: '小方·AI内联' },
+    }),
   },
   makeMaterial('b-fx-question', '问号', '特效', ['内置', '表情', '问号'], effectSvg('问号', '#ffffff')),
   makeMaterial('b-fx-exclaim', '感叹号', '特效', ['内置', '表情', '感叹号'], effectSvg('感叹号', '#ff6060')),
@@ -187,6 +199,11 @@ export function installDevMockApi(): void {
       message: 'AI 生成素材仅在桌面版可用，请使用应用窗口操作',
     }),
     testImageGen: async () => ({ ok: false, message: '（mock）浏览器调试模式不支持' }),
+    generateRigCharacter: async () => ({
+      ok: false,
+      message: 'AI 绑骨角色仅在桌面版可用，请使用应用窗口操作',
+    }),
+    onRigCharacterProgress: () => () => {},
     parseScript: async () => ({ ok: true, shots: DEMO_SHOTS }),
     regenerateShot: async (shot: Shot) => ({ ok: true, shot }),
 

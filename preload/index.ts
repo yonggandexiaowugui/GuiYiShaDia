@@ -3,7 +3,7 @@
 // 通道命名与 main/ipc.ts 一一对应
 // ============================================================================
 import { contextBridge, ipcRenderer } from 'electron'
-import type { GuiYiShaDiaoApi, ExportProgress } from '../shared/types'
+import type { GuiYiShaDiaoApi, ExportProgress, RigCharacterProgress } from '../shared/types'
 
 const api: GuiYiShaDiaoApi = {
   // 素材
@@ -30,6 +30,12 @@ const api: GuiYiShaDiaoApi = {
   testTTS: (config) => ipcRenderer.invoke('ai:testTTS', config),
   generateImageMaterial: (prompt, category) => ipcRenderer.invoke('ai:generateImage', prompt, category),
   testImageGen: (config) => ipcRenderer.invoke('ai:testImageGen', config),
+  generateRigCharacter: (name, style) => ipcRenderer.invoke('ai:generateRigCharacter', name, style),
+  onRigCharacterProgress: (cb) => {
+    const listener = (_e: unknown, p: RigCharacterProgress): void => cb(p)
+    ipcRenderer.on('ai:rigCharacterProgress', listener)
+    return () => ipcRenderer.removeListener('ai:rigCharacterProgress', listener)
+  },
   parseScript: (script, sampleShots) => ipcRenderer.invoke('ai:parseScript', script, sampleShots),
   regenerateShot: (shot) => ipcRenderer.invoke('ai:regenShot', shot),
 

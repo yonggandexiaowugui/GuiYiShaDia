@@ -7,7 +7,7 @@
 import { DEFAULT_SUBTITLE_STYLE, TRACK_RENDER_ORDER } from '@shared/types'
 import type { Material, MotionTemplateId, SubtitleStyle, Track } from '@shared/types'
 import { BUILTIN_CLIPS, BUILTIN_RIG, getAnimClip } from '@shared/rig'
-import { expressionForEmotion, getCharacterRig, parseRiggedMeta } from '@shared/characterRig'
+import { expressionForEmotion, parseRiggedMeta, resolveCharacterRig } from '@shared/characterRig'
 import type { CharacterRig } from '@shared/characterRig'
 import { buildWorldPose, samplePose } from './rigEvaluator'
 import { partUrl, rigPartFiles, rigPartUrls, RIG_DRAW_ORDER } from './rigParts'
@@ -110,9 +110,9 @@ export function collectImageUrls(
       if (!mat) continue
       if (track.type === 'character') {
         const rigged = parseRiggedMeta(mat.meta)
-        const charRig = rigged ? getCharacterRig(rigged.characterRigId) : undefined
+        const charRig = rigged ? resolveCharacterRig(rigged) : undefined
         if (charRig) {
-          for (const u of rigPartUrls(charRig)) urls.add(u)
+          for (const u of rigPartUrls(charRig, assetUrl)) urls.add(u)
           continue
         }
       }
@@ -169,11 +169,12 @@ function drawRiggedCharacter(
   currentTime: number,
   w: number,
   h: number,
+  assetUrl: (p: string) => string,
 ): boolean {
   // 全部部件图必须已在缓存（预热阶段保证）；任一缺失则回退整图缩略图
   const partImgs = new Map<string, HTMLImageElement>()
   for (const f of rigPartFiles(charRig)) {
-    const img = getCachedImage(partUrl(f))
+    const img = getCachedImage(partUrl(f, assetUrl))
     if (!img) return false
     partImgs.set(f, img)
   }
@@ -264,8 +265,8 @@ export function drawScene(opts: DrawOptions): void {
     // 绑骨角色：骨骼渲染分支（部件图就绪时直接接管，否则回退整图缩略图）
     if (track.type === 'character') {
       const rigged = parseRiggedMeta(mat.meta)
-      const charRig = rigged ? getCharacterRig(rigged.characterRigId) : undefined
-      if (charRig && drawRiggedCharacter(ctx, charRig, clip, currentTime, w, h)) continue
+      const charRig = rigged ? resolveCharacterRig(rigged) : undefined
+      if (charRig && drawRiggedCharacter(ctx, charRig, clip, currentTime, w, h, assetUrl)) continue
     }
 
     const img = getCachedImage(assetUrl(mat.file_path))

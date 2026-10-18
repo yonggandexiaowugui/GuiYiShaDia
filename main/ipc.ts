@@ -26,6 +26,7 @@ import { removeMaterialBackground } from './bgremove'
 import { exportPSDLayers, parsePSD } from './psd'
 import { getAIConfig, generateVoiceover, parseScript, regenerateShot, saveAIConfig, testLLM, testTTS } from './ai'
 import { generateImageMaterial, testImageGen } from './imagegen'
+import { generateRigCharacter } from './riggen'
 import { listLocalVoices } from './tts'
 import { cancelExport, finishExport, pickExportPath, startExport, writeFrame } from './exporter'
 import { autosaveProject, clearAutosave, openProjectFile, readAutosave, saveProjectFile } from './project'
@@ -76,6 +77,11 @@ export function registerIpc(): void {
     generateImageMaterial(prompt, category),
   )
   ipcMain.handle('ai:testImageGen', (_e, config: Parameters<typeof testImageGen>[0]) => testImageGen(config))
+  ipcMain.handle('ai:generateRigCharacter', (e, name: string, style: string) =>
+    generateRigCharacter(name, style, (p) => {
+      if (!e.sender.isDestroyed()) e.sender.send('ai:rigCharacterProgress', p)
+    }),
+  )
   ipcMain.handle('ai:parseScript', (_e, script: string, sampleShots?: Shot[]) => parseScript(script, sampleShots))
   ipcMain.handle('ai:regenShot', (_e, shot: Shot) => regenerateShot(shot))
 

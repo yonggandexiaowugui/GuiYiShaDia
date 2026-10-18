@@ -9,7 +9,7 @@
 /** 单个部件 → 骨映射 */
 export interface RiggedPart {
   boneId: string
-  /** 部件图文件名（src/assets/rig-character/ 下） */
+  /** 部件图：内置角色为文件名（src/assets/rig-character/ 下）；AI 角色为相对资源路径（assets/...） */
   image: string
   /** 角色空间尺寸（含出血边，单位同 rig.height=400 体系） */
   width: number
@@ -45,19 +45,40 @@ export interface CharacterRig {
   expressions: ExpressionDef[]
 }
 
-/** 素材 meta 中的绑骨标记（JSON 解析结果） */
+/** 素材 meta 中的绑骨标记（JSON 解析结果）；AI 生成角色会内联完整 rig */
 export interface RiggedMeta {
   rigged: true
   characterRigId: string
+  /** P4：AI 绑骨角色把 manifest 直接存进素材 meta（自包含，不走注册表） */
+  rig?: CharacterRig
+}
+
+/** 校验内联 rig 的最小结构（parts/face/expressions 齐备才认） */
+function isCharacterRig(v: unknown): v is CharacterRig {
+  if (!v || typeof v !== 'object') return false
+  const o = v as Partial<CharacterRig>
+  return (
+    typeof o.id === 'string' &&
+    typeof o.rigId === 'string' &&
+    Array.isArray(o.parts) &&
+    o.parts.length > 0 &&
+    !!o.face &&
+    Array.isArray(o.expressions) &&
+    o.expressions.length > 0
+  )
 }
 
 /** 解析素材 meta；非绑骨素材返回 null（整图模式） */
 export function parseRiggedMeta(meta: string | null): RiggedMeta | null {
   if (!meta) return null
   try {
-    const obj = JSON.parse(meta) as { rigged?: unknown; characterRigId?: unknown }
+    const obj = JSON.parse(meta) as { rigged?: unknown; characterRigId?: unknown; rig?: unknown }
     if (obj && obj.rigged === true && typeof obj.characterRigId === 'string') {
-      return { rigged: true, characterRigId: obj.characterRigId }
+      return {
+        rigged: true,
+        characterRigId: obj.characterRigId,
+        ...(isCharacterRig(obj.rig) ? { rig: obj.rig } : {}),
+      }
     }
   } catch {
     // meta 非 JSON：视为整图素材
@@ -71,6 +92,11 @@ export const CHARACTER_RIGS: CharacterRig[] = []
 /** 按 id 查绑骨角色 */
 export function getCharacterRig(id: string): CharacterRig | undefined {
   return CHARACTER_RIGS.find((c) => c.id === id)
+}
+
+/** 解析绑骨素材的 manifest：优先内联 rig（AI 角色），否则查注册表（内置角色） */
+export function resolveCharacterRig(meta: RiggedMeta): CharacterRig | undefined {
+  return meta.rig ?? getCharacterRig(meta.characterRigId)
 }
 
 /** 情绪 → 表情贴图文件（Clip.emotion 驱动；未映射的情绪回退平静） */

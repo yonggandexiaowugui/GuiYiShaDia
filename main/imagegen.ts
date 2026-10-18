@@ -41,14 +41,15 @@ async function fetchWithTimeout(url: string, init: RequestInit = {}): Promise<Re
  * pollinations 公共源：GET 即得图片。
  * 免费额度限制：匿名每 45 秒 1 张；超限返回 402 + 占位图（非真图，按状态码识别）。
  * 402 → 等 46 秒重试（只等一次）；其余 5xx/429 → 短退避快速重试。
+ * fixedSeed：绑骨角色（P4）要求全套部件同 seed 保持风格一致；缺省每次随机。
  */
-async function genViaPollinations(prompt: string, size = GEN_SIZE): Promise<Buffer> {
+async function genViaPollinations(prompt: string, size = GEN_SIZE, fixedSeed?: number): Promise<Buffer> {
   const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
   let waitedForQuota = false
   let lastBusy = ''
   for (let attempt = 0; attempt < 5; attempt++) {
     try {
-      const seed = Math.floor(Math.random() * 1_000_000)
+      const seed = fixedSeed ?? Math.floor(Math.random() * 1_000_000)
       const url =
         `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}` +
         `?width=${size}&height=${size}&nologo=true&seed=${seed}`
@@ -121,10 +122,16 @@ async function genViaCustom(cfg: ImageGenConfig, prompt: string, size = GEN_SIZE
   throw new Error('接口返回中没有图片数据')
 }
 
-async function generateBytes(cfg: ImageGenConfig, prompt: string, size: number): Promise<Buffer> {
+/** 按配置通道生成图片字节；seed 仅对 pollinations 生效（custom 通道忽略） */
+export async function generateBytes(
+  cfg: ImageGenConfig,
+  prompt: string,
+  size: number,
+  seed?: number,
+): Promise<Buffer> {
   return (cfg.provider ?? 'pollinations') === 'custom'
     ? genViaCustom(cfg, prompt, size)
-    : genViaPollinations(prompt, size)
+    : genViaPollinations(prompt, size, seed)
 }
 
 /** 生成图片素材并入库（真正落盘 + 缩略图 + 数据库） */

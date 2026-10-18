@@ -122,6 +122,10 @@ function createWindow(): void {
     mainWindow.webContents.once('did-finish-load', () => {
       void runAutoLoopTest()
     })
+  } else if (autoTest === 'riggen') {
+    mainWindow.webContents.once('did-finish-load', () => {
+      void runAutoRigGen()
+    })
   } else if (!app.isPackaged && process.env.GUIYI_AUTO_EXPORT) {
     mainWindow.webContents.once('did-finish-load', () => {
       void runAutoExport(process.env.GUIYI_AUTO_EXPORT as string)
@@ -290,6 +294,54 @@ async function runAutoImageGen(): Promise<void> {
     log(`autoimg: done ${JSON.stringify(result)}`)
   } catch (e) {
     log(`autoimg: failed ${e instanceof Error ? e.message : String(e)}`)
+  }
+}
+
+/** 自动化：AI 绑骨角色自检——逐部件生成 → 校验入库 meta.rig 与 9 个部件图可取回 */
+async function runAutoRigGen(): Promise<void> {
+  const win = mainWindow
+  if (!win || win.isDestroyed()) return
+  const style =
+    process.env.GUIYI_AUTO_RIGGEN_STYLE ??
+    'zombie theme, pale green skin, tattered clothes, goofy sandao meme style'
+  log('autorig: start')
+  try {
+    const result = await win.webContents.executeJavaScript(
+      `(async () => {
+         const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+         for (let i = 0; i < 100 && !window.__guiyiStore; i++) await wait(100);
+         if (!window.__guiyiStore) return { ok: false, message: 'store 未暴露' };
+         const s = () => window.__guiyiStore.getState();
+         const out = { progress: [] };
+         window.api.onRigCharacterProgress((p) => out.progress.push(p.label));
+         const res = await window.api.generateRigCharacter('自动测试·绑骨角色', ${JSON.stringify(style)});
+         out.res = { ok: res.ok, message: res.message, seconds: res.seconds, name: res.material?.name };
+         if (res.ok && res.material) {
+           await s().loadMaterials();
+           const mat = s().materials.find((m) => m.id === res.material.id);
+           let rig = null;
+           try { rig = JSON.parse(mat.meta).rig; } catch { /* ignore */ }
+           out.inlineParts = rig ? rig.parts.length : 0;
+           if (rig) {
+             const files = [...new Set(rig.parts.map((p) => p.image))];
+             out.partFiles = files.length;
+             out.bytes = {};
+             for (const f of files) {
+               const resp = await fetch(window.api.assetUrl(f));
+               out.bytes[f.split('/').pop()] = (await resp.arrayBuffer()).byteLength;
+             }
+             const thumb = await fetch(window.api.assetUrl(mat.thumbnail_path));
+             out.thumbBytes = (await thumb.arrayBuffer()).byteLength;
+             out.ok = out.partFiles === 9 && Object.values(out.bytes).every((n) => n > 200) && out.thumbBytes > 100;
+           }
+         }
+         return out;
+       })()`,
+      true,
+    )
+    log(`autorig: done ${JSON.stringify(result)}`)
+  } catch (e) {
+    log(`autorig: failed ${e instanceof Error ? e.message : String(e)}`)
   }
 }
 

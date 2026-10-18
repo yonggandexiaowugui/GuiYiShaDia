@@ -30,7 +30,7 @@ const ScriptParseDialog: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           <button className="ghost" onClick={onClose}>✕</button>
         </div>
         <div className="modal-body" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ color: '#888', fontSize: 12 }}>
+          <div className="text-dim">
             粘贴剧本文字，AI 将自动拆分为分镜（含三段动作 / 情绪梯度 / 转场策略）
           </div>
           <textarea

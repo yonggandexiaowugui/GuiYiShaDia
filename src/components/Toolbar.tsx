@@ -81,7 +81,7 @@ const Toolbar: React.FC = () => {
         </button>
         <button onClick={() => setShowSettings(true)}>设置</button>
         <div className="spacer" />
-        <span style={{ color: '#888', fontSize: 12 }}>
+        <span className="text-dim">
           {totalClips} 片段 · {total.toFixed(1)}s
         </span>
         <button className="primary" onClick={() => void runExport()} disabled={exporting}>

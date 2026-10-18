@@ -206,7 +206,7 @@ const PropertyPanel: React.FC = () => {
           </div>
           <div className="form-row">
             <label>状态</label>
-            <div style={{ fontSize: 12, color: clip.voiceFile ? '#67c23a' : '#e6a23c' }}>
+            <div className={clip.voiceFile ? 'status-ok' : 'status-pending'}>
               {clip.voiceFile ? `✓ 已生成：${clip.voiceFile.split('/').pop()}` : '待生成'}
             </div>
           </div>

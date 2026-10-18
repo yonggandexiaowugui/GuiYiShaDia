@@ -208,28 +208,26 @@ const PreviewArea: React.FC = () => {
       onDragLeave={() => setDropHint(false)}
       onDrop={onDrop}
     >
-      <div className="canvas-frame" style={{ height: 'calc(100% - 80px)' }}>
-        <canvas
-          ref={canvasRef}
-          width={w}
-          height={h}
-          style={{ width: 'auto', height: '100%', display: 'block' }}
-        />
+      <div className="preview-stage">
+        <div className="canvas-frame" style={{ aspectRatio: `${w} / ${h}` }}>
+          <canvas ref={canvasRef} width={w} height={h} />
+        </div>
       </div>
 
+      {/* 传输控制条：固定在预览面板底部（画面下方），对齐主流剪辑软件 */}
       <div className="playback-bar">
         <button className="play-btn" onClick={togglePlay} title={isPlaying ? '暂停' : '播放'}>
           {isPlaying ? '⏸' : '▶'}
         </button>
+        <span className="time-display">
+          {currentTime.toFixed(1)}s / {total.toFixed(1)}s
+        </span>
         <div className="progress-track" onClick={handleSeek}>
           <div
             className="progress-fill"
             style={{ width: total > 0 ? `${(currentTime / total) * 100}%` : '0%' }}
           />
         </div>
-        <span className="time-display">
-          {currentTime.toFixed(1)}s / {total.toFixed(1)}s
-        </span>
         {isPlaying && audioEngine.activeCount > 0 && (
           <span className="audio-badge" title="配音 / 音效正在播放">
             🔊 出声中 ×{audioEngine.activeCount}

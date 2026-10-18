@@ -465,6 +465,12 @@ export interface GuiYiShaDiaoApi {
   generateRigCharacter: (name: string, style: string) => Promise<ImageGenResult>
   /** 绑骨角色逐部件生成进度 */
   onRigCharacterProgress: (cb: (p: RigCharacterProgress) => void) => () => void
+  /** 组装绑骨角色（P5）：用户从素材库选图填 9 部件槽 + 4 表情槽（缺省用内置），几何沿用内置 manifest */
+  buildRigCharacter: (
+    name: string,
+    parts: Record<string, string>,
+    expressions: Record<string, string>,
+  ) => Promise<ImageGenResult>
   parseScript: (script: string, sampleShots?: Shot[]) => Promise<ParseScriptResult>
   regenerateShot: (shot: Shot) => Promise<RegenShotResult>
 

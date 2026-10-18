@@ -204,6 +204,10 @@ export function installDevMockApi(): void {
       message: 'AI 绑骨角色仅在桌面版可用，请使用应用窗口操作',
     }),
     onRigCharacterProgress: () => () => {},
+    buildRigCharacter: async () => ({
+      ok: false,
+      message: '组装绑骨角色仅在桌面版可用，请使用应用窗口操作',
+    }),
     parseScript: async () => ({ ok: true, shots: DEMO_SHOTS }),
     regenerateShot: async (shot: Shot) => ({ ok: true, shot }),
 

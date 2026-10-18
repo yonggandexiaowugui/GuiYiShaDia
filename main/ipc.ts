@@ -27,6 +27,7 @@ import { exportPSDLayers, parsePSD } from './psd'
 import { getAIConfig, generateVoiceover, parseScript, regenerateShot, saveAIConfig, testLLM, testTTS } from './ai'
 import { generateImageMaterial, testImageGen } from './imagegen'
 import { generateRigCharacter } from './riggen'
+import { buildRigCharacter } from './rigbuild'
 import { listLocalVoices } from './tts'
 import { cancelExport, finishExport, pickExportPath, startExport, writeFrame } from './exporter'
 import { autosaveProject, clearAutosave, openProjectFile, readAutosave, saveProjectFile } from './project'
@@ -81,6 +82,11 @@ export function registerIpc(): void {
     generateRigCharacter(name, style, (p) => {
       if (!e.sender.isDestroyed()) e.sender.send('ai:rigCharacterProgress', p)
     }),
+  )
+  ipcMain.handle(
+    'rig:buildCharacter',
+    (_e, name: string, parts: Record<string, string>, expressions: Record<string, string>) =>
+      buildRigCharacter(name, parts, expressions),
   )
   ipcMain.handle('ai:parseScript', (_e, script: string, sampleShots?: Shot[]) => parseScript(script, sampleShots))
   ipcMain.handle('ai:regenShot', (_e, shot: Shot) => regenerateShot(shot))

@@ -9,7 +9,8 @@ import { BUILTIN_CLIPS, BUILTIN_RIG } from '@shared/rig'
 import { BUILTIN_RIGGED_CHARACTER } from '@shared/characterRig'
 import { buildWorldPose, samplePose } from '../services/rigEvaluator'
 import type { SampledBone, WorldBone } from '../services/rigEvaluator'
-import { partUrl, rigPartFiles, riggedAvailable } from '../services/rigParts'
+import { partUrl, rigPartFiles, riggedAvailable, RIG_DRAW_ORDER } from '../services/rigParts'
+import { drawRiggedCharacterPreview } from '../services/rigDraw'
 
 const CANVAS_W = 460
 const CANVAS_H = 560
@@ -17,13 +18,6 @@ const CANVAS_H = 560
 const SCALE = 1.15
 const ORIGIN_X = CANVAS_W / 2
 const ORIGIN_Y = 510
-
-/** 部件绘制顺序：先四肢（下层），后躯干/头（上层） */
-const DRAW_ORDER = [
-  'thighL', 'shinL', 'thighR', 'shinR',
-  'upperArmL', 'forearmL', 'handL', 'upperArmR', 'forearmR', 'handR',
-  'root', 'hip', 'spine', 'neck', 'head',
-]
 
 const ALL_PART_FILES = rigPartFiles(BUILTIN_RIGGED_CHARACTER)
 /** 生成脚本是否已跑过（缺图时引导用户执行脚本，不允许进入绑骨模式） */
@@ -85,7 +79,7 @@ function drawPlaceholder(
 ): void {
   drawBackground(ctx)
   const boneById = new Map(BUILTIN_RIG.bones.map((b) => [b.id, b]))
-  for (const id of DRAW_ORDER) {
+  for (const id of RIG_DRAW_ORDER) {
     const bone = boneById.get(id)
     const w = world.get(id)
     if (!bone || !w) continue
@@ -112,7 +106,7 @@ function drawPlaceholder(
   if (showDebug) drawDebugOverlay(ctx, world)
 }
 
-/** 绑骨模式：真实部件图 + 表情叠加 */
+/** 绑骨模式：真实部件图 + 表情叠加（绘制核心复用 rigDraw，背景/调试层自理） */
 function drawRigged(
   ctx: CanvasRenderingContext2D,
   world: Map<string, WorldBone>,
@@ -121,53 +115,11 @@ function drawRigged(
   showDebug: boolean,
 ): void {
   drawBackground(ctx)
-
-  // 脚下投影（静置，不随骨变换）
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.35)'
-  ctx.beginPath()
-  ctx.ellipse(ORIGIN_X, ORIGIN_Y - 2, 66 * SCALE, 10 * SCALE, 0, 0, Math.PI * 2)
-  ctx.fill()
-
-  const char = BUILTIN_RIGGED_CHARACTER
-  ctx.imageSmoothingEnabled = true
-  ctx.imageSmoothingQuality = 'high'
-
-  for (const boneId of DRAW_ORDER) {
-    const part = char.parts.find((p) => p.boneId === boneId)
-    if (!part) continue
-    const w = world.get(boneId)
-    const img = images.get(part.image)
-    if (!w || !img) continue
-    ctx.save()
-    ctx.translate(ORIGIN_X + w.x * SCALE, ORIGIN_Y + w.y * SCALE)
-    ctx.rotate((w.angle * Math.PI) / 180)
-    ctx.drawImage(
-      img,
-      -part.pivotX * part.width * SCALE,
-      -part.pivotY * part.height * SCALE,
-      part.width * SCALE,
-      part.height * SCALE,
-    )
-    ctx.restore()
-  }
-
-  // 表情贴图：叠在 head 层上方，跟随 head 骨世界变换（脸不挂骨，永不拉申变形）
-  const hw = world.get('head')
-  if (hw && exprImage) {
-    const f = char.face
-    ctx.save()
-    ctx.translate(ORIGIN_X + hw.x * SCALE, ORIGIN_Y + hw.y * SCALE)
-    ctx.rotate((hw.angle * Math.PI) / 180)
-    ctx.drawImage(
-      exprImage,
-      (f.offsetX - f.width / 2) * SCALE,
-      (f.offsetY - f.height / 2) * SCALE,
-      f.width * SCALE,
-      f.height * SCALE,
-    )
-    ctx.restore()
-  }
-
+  drawRiggedCharacterPreview(ctx, BUILTIN_RIGGED_CHARACTER, world, images, exprImage, {
+    scale: SCALE,
+    originX: ORIGIN_X,
+    originY: ORIGIN_Y,
+  })
   if (showDebug) drawDebugOverlay(ctx, world)
 }
 

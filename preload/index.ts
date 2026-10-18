@@ -31,6 +31,8 @@ const api: GuiYiShaDiaoApi = {
   generateImageMaterial: (prompt, category) => ipcRenderer.invoke('ai:generateImage', prompt, category),
   testImageGen: (config) => ipcRenderer.invoke('ai:testImageGen', config),
   generateRigCharacter: (name, style) => ipcRenderer.invoke('ai:generateRigCharacter', name, style),
+  buildRigCharacter: (name, parts, expressions) =>
+    ipcRenderer.invoke('rig:buildCharacter', name, parts, expressions),
   onRigCharacterProgress: (cb) => {
     const listener = (_e: unknown, p: RigCharacterProgress): void => cb(p)
     ipcRenderer.on('ai:rigCharacterProgress', listener)

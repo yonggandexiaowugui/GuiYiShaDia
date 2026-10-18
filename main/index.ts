@@ -126,6 +126,10 @@ function createWindow(): void {
     mainWindow.webContents.once('did-finish-load', () => {
       void runAutoRigGen()
     })
+  } else if (autoTest === 'rigbuild') {
+    mainWindow.webContents.once('did-finish-load', () => {
+      void runAutoRigBuild()
+    })
   } else if (!app.isPackaged && process.env.GUIYI_AUTO_EXPORT) {
     mainWindow.webContents.once('did-finish-load', () => {
       void runAutoExport(process.env.GUIYI_AUTO_EXPORT as string)
@@ -342,6 +346,57 @@ async function runAutoRigGen(): Promise<void> {
     log(`autorig: done ${JSON.stringify(result)}`)
   } catch (e) {
     log(`autorig: failed ${e instanceof Error ? e.message : String(e)}`)
+  }
+}
+
+/** 自动化：组装绑骨角色自检——用库内 ai-rig 素材的部件图组装新角色，校验拷贝/入库/资源可取回 */
+async function runAutoRigBuild(): Promise<void> {
+  const win = mainWindow
+  if (!win || win.isDestroyed()) return
+  log('autorib: start')
+  try {
+    const result = await win.webContents.executeJavaScript(
+      `(async () => {
+         const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+         for (let i = 0; i < 100 && !window.__guiyiStore; i++) await wait(100);
+         if (!window.__guiyiStore) return { ok: false, message: 'store 未暴露' };
+         const s = () => window.__guiyiStore.getState();
+         const isSource = (m, src) => { try { return JSON.parse(m.meta || '{}').source === src } catch { return false } };
+         let src = null;
+         for (let i = 0; i < 60 && !src; i++) { await wait(500); src = s().materials.find((m) => isSource(m, 'ai-rig')); }
+         if (!src) return { ok: false, message: '素材库无 ai-rig 素材（需先跑 GUIYI_AUTO_TEST=riggen）' };
+         const srcRig = JSON.parse(src.meta).rig;
+         const parts = {};
+         for (const p of srcRig.parts) parts[p.image.split('/').pop()] = p.image;
+         const res = await window.api.buildRigCharacter('自动组装·绑骨角色', parts, {});
+         const out = { res: { ok: res.ok, message: res.message, name: res.material?.name } };
+         if (res.ok && res.material) {
+           await s().loadMaterials();
+           const mat = s().materials.find((m) => isSource(m, 'user-rig'));
+           if (!mat) return { ...out, ok: false, message: '入库后未找到 user-rig 素材' };
+           const rig = JSON.parse(mat.meta).rig;
+           out.partCount = rig.parts.length;
+           const files = [...new Set(rig.parts.map((p) => p.image))];
+           out.uniqueParts = files.length;
+           out.bytes = {};
+           for (const f of files) {
+             const resp = await fetch(window.api.assetUrl(f));
+             out.bytes[f.split('/').pop()] = (await resp.arrayBuffer()).byteLength;
+           }
+           const exprs = rig.expressions.filter((e) => e.image.includes('/'));
+           out.customExprs = exprs.length;
+           const thumb = await fetch(window.api.assetUrl(mat.thumbnail_path));
+           out.thumbBytes = (await thumb.arrayBuffer()).byteLength;
+           out.ok = out.partCount === 14 && out.uniqueParts === 9 &&
+             Object.values(out.bytes).every((n) => n > 200) && out.thumbBytes > 100;
+         }
+         return out;
+       })()`,
+      true,
+    )
+    log(`autorib: done ${JSON.stringify(result)}`)
+  } catch (e) {
+    log(`autorib: failed ${e instanceof Error ? e.message : String(e)}`)
   }
 }
 

@@ -585,3 +585,38 @@ input[type='color'] {
 .text-dim { color: var(--text-3); font-size: 12px; }
 .status-ok { color: var(--success); font-size: 12px; }
 .status-pending { color: var(--warning); font-size: 12px; }
+
+/* ---- 骨骼实验室（P1） ---- */
+.rig-lab-dialog { width: 800px; max-height: 88vh; }
+.rig-lab-body { display: flex; gap: var(--sp-4); }
+.rig-lab-canvas {
+  background: var(--bg-canvas); border: 1px solid var(--border);
+  border-radius: var(--r-lg); flex-shrink: 0;
+}
+.rig-lab-side { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-3); }
+.rig-lab-clips { display: flex; gap: var(--sp-2); }
+.rig-lab-clips button.active {
+  border-color: var(--accent); color: var(--accent); background: var(--accent-soft);
+}
+.rig-lab-controls { display: flex; align-items: center; gap: var(--sp-2); }
+.rig-lab-controls input[type='range'] { flex: 1; min-width: 0; accent-color: var(--accent); }
+.rig-lab-controls .text-dim { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.rig-bone-list {
+  flex: 1; min-height: 0; overflow-y: auto;
+  border: 1px solid var(--border); border-radius: var(--r-md);
+}
+.rig-bone-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 3px var(--sp-3); font-size: 11px; color: var(--text-2);
+  border-bottom: 1px solid var(--divider);
+}
+.rig-bone-row:last-child { border-bottom: none; }
+.rig-bone-row .deg { font-variant-numeric: tabular-nums; color: var(--text-1); }
+.rig-bone-row.clamped, .rig-bone-row.clamped .deg { color: var(--danger); font-weight: 600; }
+.rig-lab-hint { font-size: 11px; color: var(--text-3); line-height: 1.7; }
+.rig-lab-debug {
+  display: flex; align-items: center; gap: var(--sp-2);
+  font-size: 11px; color: var(--text-2); cursor: pointer; user-select: none;
+}
+.rig-lab-debug input { accent-color: var(--accent); }
+.rig-lab-clips button:disabled { opacity: 0.4; cursor: not-allowed; }

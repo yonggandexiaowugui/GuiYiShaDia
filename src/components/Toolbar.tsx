@@ -2,6 +2,7 @@ import React from 'react'
 import { useStore, totalDuration, DEMO_PRESETS } from '../services/store'
 import ScriptParseDialog from './ScriptParseDialog'
 import SettingsDialog from './SettingsDialog'
+import RigLabDialog from './RigLabDialog'
 
 const Toolbar: React.FC = () => {
   const importFiles = useStore((s) => s.importFiles)
@@ -17,6 +18,7 @@ const Toolbar: React.FC = () => {
   const openProject = useStore((s) => s.openProject)
   const [showScriptDialog, setShowScriptDialog] = React.useState(false)
   const [showSettings, setShowSettings] = React.useState(false)
+  const [showRigLab, setShowRigLab] = React.useState(false)
   const [demoMenu, setDemoMenu] = React.useState(false)
   const [generatingVoice, setGeneratingVoice] = React.useState(false)
 
@@ -43,6 +45,7 @@ const Toolbar: React.FC = () => {
         <button onClick={() => void openProject()} title="打开工程 (.guiyi)">打开</button>
         <button onClick={() => void saveProject()} title="保存工程 (Ctrl+S)">保存</button>
         <button onClick={() => setShowScriptDialog(true)}>AI 剧本</button>
+        <button onClick={() => setShowRigLab(true)} title="骨骼系统 P1：占位骨架试播验证">骨骼</button>
         <div className="demo-wrap">
           <button onClick={() => setDemoMenu((v) => !v)} title="一键载入一个完整示例短片">
             载入示例 ▾
@@ -90,6 +93,7 @@ const Toolbar: React.FC = () => {
       </div>
       {showScriptDialog && <ScriptParseDialog onClose={() => setShowScriptDialog(false)} />}
       {showSettings && <SettingsDialog onClose={() => setShowSettings(false)} />}
+      {showRigLab && <RigLabDialog onClose={() => setShowRigLab(false)} />}
     </>
   )
 }

@@ -44,6 +44,7 @@
     "build": "vite build",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "gen:assets": "node scripts/generate-assets.mjs",
+    "gen:rig": "node scripts/generate-rig-character.mjs",
     "prepare:ffmpeg": "node scripts/prepare-ffmpeg.mjs",
     "rebuild": "electron-rebuild -f -w better-sqlite3",
     "pack": "npm run build && npm run prepare:ffmpeg && electron-builder",

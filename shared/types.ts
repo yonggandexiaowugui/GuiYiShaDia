@@ -164,6 +164,8 @@ export interface Clip {
   // 视觉类扩展
   motion?: MotionTemplateId
   emotion?: Emotion
+  /** 绑骨角色（素材 meta.rigged 为真）播放的骨骼动作 clip id；整图素材无此字段 */
+  rigClipId?: string
   // 音频类扩展
   volume?: number
   sourceDuration?: number // 音频源真实时长；视觉类省略（可任意拉伸）

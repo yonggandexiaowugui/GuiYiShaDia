@@ -71,6 +71,45 @@ for (const [slug, label, parts, extra] of squareFaces) {
 }
 
 // ---------------------------------------------------------------------------
+// 绑骨角色「小方」（P3）：A-pose 缩略图（整图回退用）
+// 实际播放由渲染端按 shared/characterRig.ts + src/assets/rig-character/ 部件
+// 经骨骼求值绘制；此处仅生成素材库缩略图。几何 = 部件 rest 姿态拼合。
+// ---------------------------------------------------------------------------
+{
+  const SHIRT = '#465a7d'
+  const PANTS = '#33394a'
+  const SHOE = '#262033'
+  const SW2 = 2.7
+  const r = (x, y, w, h, rx, fill) =>
+    `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${fill}" stroke="${LINE}" stroke-width="${SW2}"/>`
+  const svgBody =
+    // 腿（下层）
+    r(141, 204, 30, 120, 15, PANTS) + r(189, 204, 30, 120, 15, PANTS) +
+    r(144, 297, 24, 112, 12, PANTS) + r(174, 297, 24, 112, 12, PANTS) +
+    `<ellipse cx="156" cy="402" rx="13.5" ry="8" fill="${SHOE}" stroke="${LINE}" stroke-width="${SW2}"/>` +
+    `<ellipse cx="186" cy="402" rx="13.5" ry="8" fill="${SHOE}" stroke="${LINE}" stroke-width="${SW2}"/>` +
+    // 手臂
+    r(111, 104, 26, 94, 13, SHIRT) + r(223, 104, 26, 94, 13, SHIRT) +
+    r(113, 174, 22, 82, 11, SKIN) + r(225, 174, 22, 82, 11, SKIN) +
+    r(112, 233, 24, 38, 12, SKIN) + r(224, 233, 24, 38, 12, SKIN) +
+    // 躯干链
+    r(142, 191, 76, 56, 14, PANTS) +
+    r(136, 101, 88, 128, 20, SHIRT) +
+    r(168, 90, 24, 30, 8, SKIN) +
+    r(132, 5, 96, 104, 26, SKIN) +
+    // 平静表情
+    `<circle cx="167.2" cy="48.3" r="2.9" fill="${LINE}"/><circle cx="192.8" cy="48.3" r="2.9" fill="${LINE}"/>` +
+    `<path d="M172 72.6 L188 72.6" stroke="${LINE}" stroke-width="1.9" stroke-linecap="round"/>`
+  await png('char-rigged-xiaofang.png',
+    `<svg xmlns="http://www.w3.org/2000/svg" width="360" height="430">${svgBody}</svg>`)
+  addPng('builtin-char-rigged-xiaofang', '小方·绑骨', '角色', ['内置', '绑骨', '骨骼'], 'char-rigged-xiaofang.png', {
+    minDuration: 0.5,
+    maxDuration: 30,
+    metaExtra: { rigged: true, characterRigId: 'xiaofang' },
+  })
+}
+
+// ---------------------------------------------------------------------------
 // 场景（1080×1920 竖屏，剪影风）
 // ---------------------------------------------------------------------------
 const scenes = []

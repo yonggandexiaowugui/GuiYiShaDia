@@ -20,6 +20,8 @@ interface BuiltinEntry {
   allowHardCut?: boolean
   emotionWeight?: number
   loopFlag?: boolean
+  /** 追加写入素材 meta JSON 的扩展字段（如绑骨角色标记） */
+  metaExtra?: Record<string, unknown>
 }
 
 interface BuiltinManifest {
@@ -79,7 +81,7 @@ export async function seedBuiltinAssets(log: (m: string) => void): Promise<void>
         tags: m.tags ?? ['内置'],
         file_path: relFile,
         thumbnail_path: thumbRel,
-        meta: JSON.stringify({ source: 'builtin' }),
+        meta: JSON.stringify({ source: 'builtin', ...(m.metaExtra ?? {}) }),
       })
       // 平滑元数据走 update（addMaterial 仅落基础列）
       if (

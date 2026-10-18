@@ -2,6 +2,8 @@ import React from 'react'
 import { useStore } from '../services/store'
 import { EMOTIONS, TRACK_COLORS } from '@shared/types'
 import type { MotionTemplateId } from '@shared/types'
+import { BUILTIN_CLIPS } from '@shared/rig'
+import { parseRiggedMeta } from '@shared/characterRig'
 
 const MOTION_OPTIONS: { value: MotionTemplateId; label: string }[] = [
   { value: 'idle', label: '呼吸/待机' },
@@ -29,6 +31,9 @@ const PropertyPanel: React.FC = () => {
 
   const track = selectedClip ? tracks.find((t) => t.id === selectedClip.trackId) : null
   const clip = track ? track.clips.find((c) => c.id === selectedClip?.clipId) : null
+  const materials = useStore((s) => s.materials)
+  const material = clip?.materialId ? materials.find((m) => m.id === clip.materialId) : null
+  const isRiggedMaterial = !!parseRiggedMeta(material?.meta ?? null)
 
   const [voiceText, setVoiceText] = React.useState('')
   const [voiceDur, setVoiceDur] = React.useState(3)
@@ -167,6 +172,23 @@ const PropertyPanel: React.FC = () => {
             </select>
           </div>
         </>
+      )}
+
+      {/* 绑骨角色：骨骼动作选择（整图素材不显示） */}
+      {track.type === 'character' && isRiggedMaterial && (
+        <div className="form-row">
+          <label>骨骼动作</label>
+          <select
+            value={clip.rigClipId ?? 'idle'}
+            onChange={(e) => update({ rigClipId: e.target.value })}
+          >
+            {BUILTIN_CLIPS.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}（{c.id}）
+              </option>
+            ))}
+          </select>
+        </div>
       )}
 
       {/* 配音：台词 + 独立字幕 + 重新生成 */}

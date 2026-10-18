@@ -29,6 +29,7 @@ import {
 } from '@shared/types'
 import { probeAudioDuration } from './audioEngine'
 import { runExport } from './exporter'
+import { parseRiggedMeta } from '@shared/characterRig'
 import { totalDuration } from './timelineUtils'
 
 const IMAGE_EXTS = ['.png', '.jpg', '.jpeg', '.webp']
@@ -548,6 +549,8 @@ export const useStore = create<GuiYiState>((set, get) => {
       color: TRACK_COLORS[track.type],
       // 素材标记为可循环（如 BGM）时，片段默认开启循环铺满
       ...(m.loopFlag ? { loop: true } : {}),
+      // 绑骨角色素材：默认播放待机骨骼动作
+      ...(parseRiggedMeta(m.meta) ? { rigClipId: 'idle' } : {}),
     }
     set({
       tracks: st.tracks.map((t) =>

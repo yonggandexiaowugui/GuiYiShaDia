@@ -2,9 +2,15 @@
 // 场景渲染：预览与导出共用的同一套纯函数渲染逻辑（drawScene）
 // - drawScene 为同步函数，只使用已缓存的图片；缺图时跳过该层
 // - 调用前用 preloadImages(collectImageUrls(...)) 预热，保证图片就位
+// - 绑骨角色（素材 meta.rigged）走骨骼渲染分支，整图素材路径保持不变
 // ============================================================================
 import { DEFAULT_SUBTITLE_STYLE, TRACK_RENDER_ORDER } from '@shared/types'
 import type { Material, MotionTemplateId, SubtitleStyle, Track } from '@shared/types'
+import { BUILTIN_CLIPS, BUILTIN_RIG, getAnimClip } from '@shared/rig'
+import { expressionForEmotion, getCharacterRig, parseRiggedMeta } from '@shared/characterRig'
+import type { CharacterRig } from '@shared/characterRig'
+import { buildWorldPose, samplePose } from './rigEvaluator'
+import { partUrl, rigPartFiles, rigPartUrls, RIG_DRAW_ORDER } from './rigParts'
 
 // ---------------------------------------------------------------------------
 // 演出模板：程序化动效
@@ -89,7 +95,7 @@ export function loadImage(url: string): Promise<HTMLImageElement | null> {
   })
 }
 
-/** 收集轨道上所有视觉素材的图片 URL */
+/** 收集轨道上所有视觉素材的图片 URL（绑骨角色收集其全部部件图） */
 export function collectImageUrls(
   tracks: Track[],
   materials: Material[],
@@ -101,7 +107,16 @@ export function collectImageUrls(
     for (const clip of track.clips) {
       if (!clip.materialId) continue
       const mat = materials.find((m) => m.id === clip.materialId)
-      if (mat) urls.add(assetUrl(mat.file_path))
+      if (!mat) continue
+      if (track.type === 'character') {
+        const rigged = parseRiggedMeta(mat.meta)
+        const charRig = rigged ? getCharacterRig(rigged.characterRigId) : undefined
+        if (charRig) {
+          for (const u of rigPartUrls(charRig)) urls.add(u)
+          continue
+        }
+      }
+      urls.add(assetUrl(mat.file_path))
     }
   }
   return [...urls]
@@ -143,6 +158,86 @@ export interface DrawOptions {
   subtitleStyle?: SubtitleStyle
 }
 
+/**
+ * 绑骨角色渲染：求值骨骼姿态 → 部件按 pivot 对齐绘制 → 表情贴图叠 head 局部空间
+ * 与整图路径共用 layerGeom / motion 模板；返回 false 表示部件图未就绪（调用方回退整图）
+ */
+function drawRiggedCharacter(
+  ctx: CanvasRenderingContext2D,
+  charRig: CharacterRig,
+  clip: Track['clips'][number],
+  currentTime: number,
+  w: number,
+  h: number,
+): boolean {
+  // 全部部件图必须已在缓存（预热阶段保证）；任一缺失则回退整图缩略图
+  const partImgs = new Map<string, HTMLImageElement>()
+  for (const f of rigPartFiles(charRig)) {
+    const img = getCachedImage(partUrl(f))
+    if (!img) return false
+    partImgs.set(f, img)
+  }
+
+  const anim = getAnimClip(BUILTIN_CLIPS, clip.rigClipId ?? 'idle')
+  if (!anim) return false
+  // 骨骼时间：片段内相对时间；循环动作按源时长取模，非循环动作定格在结束姿态
+  const sampled = samplePose(BUILTIN_RIG, anim, currentTime - clip.start)
+  const world = buildWorldPose(BUILTIN_RIG, sampled)
+
+  const progress = (currentTime - clip.start) / clip.duration
+  const offset = getMotionOffset(clip.motion, progress, clip.duration, w)
+  const { baseY, scaleMul } = layerGeom('character')
+  // 角色空间（rig.height 单位高）→ 画布：与整图角色同档位（半屏高）
+  const rigScale = ((h * 0.5) / BUILTIN_RIG.height) * scaleMul * offset.scale
+
+  ctx.save()
+  ctx.globalAlpha = offset.opacity
+  // 锚点 = 角色脚底中心，与整图角色的"底部居中"对齐
+  ctx.translate(w / 2 + offset.x, h - baseY + offset.y)
+  ctx.rotate((offset.rotation * Math.PI) / 180)
+  ctx.scale(rigScale, rigScale)
+
+  for (const boneId of RIG_DRAW_ORDER) {
+    const part = charRig.parts.find((p) => p.boneId === boneId)
+    if (!part) continue
+    const wb = world.get(boneId)
+    const img = partImgs.get(part.image)
+    if (!wb || !img) continue
+    ctx.save()
+    ctx.translate(wb.x, wb.y)
+    ctx.rotate((wb.angle * Math.PI) / 180)
+    ctx.drawImage(
+      img,
+      -part.pivotX * part.width,
+      -part.pivotY * part.height,
+      part.width,
+      part.height,
+    )
+    ctx.restore()
+  }
+
+  // 表情贴图：随 head 骨变换，由片段情绪驱动；脸不挂骨永不拉伸
+  const hw = world.get('head')
+  const exprImg = partImgs.get(expressionForEmotion(charRig, clip.emotion))
+  if (hw && exprImg) {
+    const f = charRig.face
+    ctx.save()
+    ctx.translate(hw.x, hw.y)
+    ctx.rotate((hw.angle * Math.PI) / 180)
+    ctx.drawImage(
+      exprImg,
+      f.offsetX - f.width / 2,
+      f.offsetY - f.height / 2,
+      f.width,
+      f.height,
+    )
+    ctx.restore()
+  }
+
+  ctx.restore()
+  return true
+}
+
 /** 渲染某一时刻的画面（同步；图片需已预热） */
 export function drawScene(opts: DrawOptions): void {
   const { ctx, tracks, materials, currentTime, width: w, height: h, assetUrl, subtitleStyle } = opts
@@ -165,6 +260,14 @@ export function drawScene(opts: DrawOptions): void {
     if (!clip.materialId) continue
     const mat = materials.find((m) => m.id === clip.materialId)
     if (!mat) continue
+
+    // 绑骨角色：骨骼渲染分支（部件图就绪时直接接管，否则回退整图缩略图）
+    if (track.type === 'character') {
+      const rigged = parseRiggedMeta(mat.meta)
+      const charRig = rigged ? getCharacterRig(rigged.characterRigId) : undefined
+      if (charRig && drawRiggedCharacter(ctx, charRig, clip, currentTime, w, h)) continue
+    }
+
     const img = getCachedImage(assetUrl(mat.file_path))
     if (!img) continue
 

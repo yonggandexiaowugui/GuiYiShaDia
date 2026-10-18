@@ -56,6 +56,16 @@ export interface AnimClip {
   tracks: Partial<Record<string, BoneKey[]>>
 }
 
+/** 按 id 查 rig 模板（当前仅内置 q14；P4 起支持角色自带扩展 rig） */
+export function getRig(rigs: RigDef[], id: string): RigDef | undefined {
+  return rigs.find((r) => r.id === id)
+}
+
+/** 按 id 查动作 clip（缺失时回退第一个，保证渲染路径永不为空） */
+export function getAnimClip(clips: AnimClip[], id: string): AnimClip | undefined {
+  return clips.find((c) => c.id === id) ?? clips[0]
+}
+
 // ---------------------------------------------------------------------------
 // 内置 rig：14 骨 Q 版模板
 // ---------------------------------------------------------------------------
@@ -169,6 +179,382 @@ export const BUILTIN_CLIPS: AnimClip[] = [
         { time: 0, dy: 0 },
         { time: 0.45, dy: 2 },
         { time: 0.9, dy: 0 },
+      ],
+    },
+  },
+  // -------------------------------------------------------------------------
+  // P3：补齐短剧必备 9 clip（以下为新增 7 个；角度均控制在限幅区间内）
+  // -------------------------------------------------------------------------
+  {
+    id: 'talk',
+    name: '说话',
+    duration: 0.8,
+    loop: true,
+    tracks: {
+      // 配合配音循环：头轻点 + 颈随动 + 手臂微张
+      head: [
+        { time: 0, angle: 0 },
+        { time: 0.2, angle: -5 },
+        { time: 0.4, angle: 2 },
+        { time: 0.6, angle: -3 },
+        { time: 0.8, angle: 0 },
+      ],
+      neck: [
+        { time: 0, angle: 0 },
+        { time: 0.2, angle: 2 },
+        { time: 0.4, angle: 0 },
+        { time: 0.8, angle: 0 },
+      ],
+      spine: [
+        { time: 0, angle: 0 },
+        { time: 0.4, angle: 1.5 },
+        { time: 0.8, angle: 0 },
+      ],
+      upperArmL: [
+        { time: 0, angle: 0 },
+        { time: 0.4, angle: 3 },
+        { time: 0.8, angle: 0 },
+      ],
+      upperArmR: [
+        { time: 0, angle: 0 },
+        { time: 0.4, angle: -3 },
+        { time: 0.8, angle: 0 },
+      ],
+    },
+  },
+  {
+    id: 'step-forward',
+    name: '上前一步',
+    duration: 0.9,
+    loop: false,
+    tracks: {
+      // 向 +x 迈一步：root 横移 + 双腿交替 + 手臂反摆（落点保持，不弹回）
+      root: [
+        { time: 0, dx: 0, dy: 0 },
+        { time: 0.25, dx: 12, dy: -6 },
+        { time: 0.5, dx: 24, dy: 0 },
+        { time: 0.75, dx: 32, dy: -5 },
+        { time: 0.9, dx: 36, dy: 0 },
+      ],
+      thighL: [
+        { time: 0, angle: 0 },
+        { time: 0.2, angle: 22 },
+        { time: 0.45, angle: 0 },
+        { time: 0.7, angle: -14 },
+        { time: 0.9, angle: 0 },
+      ],
+      shinL: [
+        { time: 0, angle: 0 },
+        { time: 0.2, angle: 35 },
+        { time: 0.45, angle: 5 },
+        { time: 0.7, angle: 20 },
+        { time: 0.9, angle: 0 },
+      ],
+      thighR: [
+        { time: 0, angle: 0 },
+        { time: 0.2, angle: -12 },
+        { time: 0.45, angle: 20 },
+        { time: 0.7, angle: 0 },
+        { time: 0.9, angle: 0 },
+      ],
+      shinR: [
+        { time: 0, angle: 0 },
+        { time: 0.2, angle: 12 },
+        { time: 0.45, angle: 30 },
+        { time: 0.7, angle: 5 },
+        { time: 0.9, angle: 0 },
+      ],
+      upperArmL: [
+        { time: 0, angle: 0 },
+        { time: 0.45, angle: -8 },
+        { time: 0.9, angle: 0 },
+      ],
+      upperArmR: [
+        { time: 0, angle: 0 },
+        { time: 0.45, angle: 8 },
+        { time: 0.9, angle: 0 },
+      ],
+      spine: [
+        { time: 0, angle: 0 },
+        { time: 0.45, angle: 3 },
+        { time: 0.9, angle: 0 },
+      ],
+    },
+  },
+  {
+    id: 'step-back',
+    name: '受惊后退',
+    duration: 0.6,
+    loop: false,
+    tracks: {
+      // 快速后跳 + 双臂惊张 + 上身微仰（定格保持）
+      root: [
+        { time: 0, dx: 0, dy: 0 },
+        { time: 0.15, dx: -14, dy: -8 },
+        { time: 0.3, dx: -26, dy: 0 },
+        { time: 0.6, dx: -26, dy: 0 },
+      ],
+      upperArmL: [
+        { time: 0, angle: 0 },
+        { time: 0.25, angle: 50 },
+        { time: 0.6, angle: 38 },
+      ],
+      upperArmR: [
+        { time: 0, angle: 0 },
+        { time: 0.25, angle: -50 },
+        { time: 0.6, angle: -40 },
+      ],
+      spine: [
+        { time: 0, angle: 0 },
+        { time: 0.25, angle: -8 },
+        { time: 0.6, angle: -6 },
+      ],
+      head: [
+        { time: 0, angle: 0 },
+        { time: 0.25, angle: -8 },
+        { time: 0.6, angle: -6 },
+      ],
+      thighL: [
+        { time: 0, angle: 0 },
+        { time: 0.25, angle: -12 },
+        { time: 0.6, angle: 0 },
+      ],
+      thighR: [
+        { time: 0, angle: 0 },
+        { time: 0.25, angle: 12 },
+        { time: 0.6, angle: 0 },
+      ],
+    },
+  },
+  {
+    id: 'reach',
+    name: '伸手挽留',
+    duration: 1.1,
+    loop: false,
+    tracks: {
+      // 双臂前伸（右臂直抬、左臂借屈肘到位，规避限幅）+ 身体前倾，保持后收回
+      upperArmR: [
+        { time: 0, angle: 0 },
+        { time: 0.35, angle: -80 },
+        { time: 0.85, angle: -80 },
+        { time: 1.1, angle: 0 },
+      ],
+      forearmR: [
+        { time: 0, angle: 0 },
+        { time: 0.35, angle: 8 },
+        { time: 0.85, angle: 8 },
+        { time: 1.1, angle: 0 },
+      ],
+      upperArmL: [
+        { time: 0, angle: 0 },
+        { time: 0.35, angle: 52 },
+        { time: 0.85, angle: 52 },
+        { time: 1.1, angle: 0 },
+      ],
+      forearmL: [
+        { time: 0, angle: 0 },
+        { time: 0.35, angle: 38 },
+        { time: 0.85, angle: 38 },
+        { time: 1.1, angle: 0 },
+      ],
+      spine: [
+        { time: 0, angle: 0 },
+        { time: 0.35, angle: 4 },
+        { time: 0.85, angle: 4 },
+        { time: 1.1, angle: 0 },
+      ],
+      head: [
+        { time: 0, angle: 0 },
+        { time: 0.35, angle: 6 },
+        { time: 0.85, angle: 6 },
+        { time: 1.1, angle: 0 },
+      ],
+      hip: [
+        { time: 0, dy: 0 },
+        { time: 0.35, dy: 4 },
+        { time: 0.85, dy: 4 },
+        { time: 1.1, dy: 0 },
+      ],
+    },
+  },
+  {
+    id: 'kneel',
+    name: '跪地',
+    duration: 1.3,
+    loop: false,
+    tracks: {
+      // 双膝外分跪坐：胯大幅下沉 + 小腿折叠 + 上身微弓（跪姿保持到结束）
+      hip: [
+        { time: 0, dy: 0 },
+        { time: 0.55, dy: 86 },
+        { time: 0.7, dy: 82 },
+        { time: 1.3, dy: 82 },
+      ],
+      thighL: [
+        { time: 0, angle: 0 },
+        { time: 0.55, angle: 20 },
+        { time: 1.3, angle: 20 },
+      ],
+      thighR: [
+        { time: 0, angle: 0 },
+        { time: 0.55, angle: -20 },
+        { time: 1.3, angle: -20 },
+      ],
+      shinL: [
+        { time: 0, angle: 0 },
+        { time: 0.55, angle: 95 },
+        { time: 1.3, angle: 95 },
+      ],
+      shinR: [
+        { time: 0, angle: 0 },
+        { time: 0.55, angle: 95 },
+        { time: 1.3, angle: 95 },
+      ],
+      spine: [
+        { time: 0, angle: 0 },
+        { time: 0.55, angle: 8 },
+        { time: 1.3, angle: 8 },
+      ],
+      head: [
+        { time: 0, angle: 0 },
+        { time: 0.55, angle: 12 },
+        { time: 1.3, angle: 12 },
+      ],
+      upperArmL: [
+        { time: 0, angle: 0 },
+        { time: 0.55, angle: 12 },
+        { time: 1.3, angle: 12 },
+      ],
+      upperArmR: [
+        { time: 0, angle: 0 },
+        { time: 0.55, angle: -12 },
+        { time: 1.3, angle: -12 },
+      ],
+    },
+  },
+  {
+    id: 'collapse',
+    name: '倒地',
+    duration: 1.4,
+    loop: false,
+    tracks: {
+      // 瘫软堆坐：root 整体下沉微倾 + 躯干弓到限幅 + 双腿折叠（瘫姿保持）
+      root: [
+        { time: 0, angle: 0, dy: 0 },
+        { time: 0.5, angle: 4, dy: 30 },
+        { time: 0.8, angle: 12, dy: 44 },
+        { time: 1.4, angle: 10, dy: 44 },
+      ],
+      hip: [
+        { time: 0, dy: 0 },
+        { time: 0.5, dy: 36 },
+        { time: 1.4, dy: 36 },
+      ],
+      thighL: [
+        { time: 0, angle: 0 },
+        { time: 0.5, angle: 35 },
+        { time: 1.4, angle: 35 },
+      ],
+      thighR: [
+        { time: 0, angle: 0 },
+        { time: 0.5, angle: -30 },
+        { time: 1.4, angle: -30 },
+      ],
+      shinL: [
+        { time: 0, angle: 0 },
+        { time: 0.5, angle: 80 },
+        { time: 1.4, angle: 80 },
+      ],
+      shinR: [
+        { time: 0, angle: 0 },
+        { time: 0.5, angle: 75 },
+        { time: 1.4, angle: 75 },
+      ],
+      spine: [
+        { time: 0, angle: 0 },
+        { time: 0.5, angle: 14 },
+        { time: 1.4, angle: 14 },
+      ],
+      neck: [
+        { time: 0, angle: 0 },
+        { time: 0.6, angle: 22 },
+        { time: 1.4, angle: 22 },
+      ],
+      head: [
+        { time: 0, angle: 0 },
+        { time: 0.6, angle: 16 },
+        { time: 1.4, angle: 16 },
+      ],
+      upperArmL: [
+        { time: 0, angle: 0 },
+        { time: 0.5, angle: 18 },
+        { time: 1.4, angle: 18 },
+      ],
+      upperArmR: [
+        { time: 0, angle: 0 },
+        { time: 0.5, angle: -18 },
+        { time: 1.4, angle: -18 },
+      ],
+    },
+  },
+  {
+    id: 'turn-away',
+    name: '转身离开',
+    duration: 1.3,
+    loop: false,
+    tracks: {
+      // 向 -x 走开：root 横移 + 整体微倾 + 两步行走交替（人停在终点）
+      root: [
+        { time: 0, dx: 0, dy: 0, angle: 0 },
+        { time: 0.4, dx: -20, dy: -5, angle: -8 },
+        { time: 0.7, dx: -38, dy: 0, angle: -8 },
+        { time: 1.0, dx: -54, dy: -5, angle: -8 },
+        { time: 1.3, dx: -64, dy: 0, angle: -8 },
+      ],
+      thighL: [
+        { time: 0, angle: 0 },
+        { time: 0.25, angle: 24 },
+        { time: 0.6, angle: -18 },
+        { time: 0.95, angle: 20 },
+        { time: 1.3, angle: -6 },
+      ],
+      shinL: [
+        { time: 0, angle: 0 },
+        { time: 0.25, angle: 32 },
+        { time: 0.6, angle: 8 },
+        { time: 0.95, angle: 30 },
+        { time: 1.3, angle: 4 },
+      ],
+      thighR: [
+        { time: 0, angle: 0 },
+        { time: 0.25, angle: -16 },
+        { time: 0.6, angle: 22 },
+        { time: 0.95, angle: -14 },
+        { time: 1.3, angle: 0 },
+      ],
+      shinR: [
+        { time: 0, angle: 0 },
+        { time: 0.25, angle: 10 },
+        { time: 0.6, angle: 30 },
+        { time: 0.95, angle: 8 },
+        { time: 1.3, angle: 0 },
+      ],
+      upperArmL: [
+        { time: 0, angle: 0 },
+        { time: 0.3, angle: -10 },
+        { time: 0.7, angle: 8 },
+        { time: 1.3, angle: 0 },
+      ],
+      upperArmR: [
+        { time: 0, angle: 0 },
+        { time: 0.3, angle: 10 },
+        { time: 0.7, angle: -8 },
+        { time: 1.3, angle: 0 },
+      ],
+      head: [
+        { time: 0, angle: 0 },
+        { time: 0.4, angle: -6 },
+        { time: 1.3, angle: -6 },
       ],
     },
   },

@@ -9,6 +9,7 @@ import { BUILTIN_CLIPS, BUILTIN_RIG } from '@shared/rig'
 import { BUILTIN_RIGGED_CHARACTER } from '@shared/characterRig'
 import { buildWorldPose, samplePose } from '../services/rigEvaluator'
 import type { SampledBone, WorldBone } from '../services/rigEvaluator'
+import { partUrl, rigPartFiles, riggedAvailable } from '../services/rigParts'
 
 const CANVAS_W = 460
 const CANVAS_H = 560
@@ -24,26 +25,9 @@ const DRAW_ORDER = [
   'root', 'hip', 'spine', 'neck', 'head',
 ]
 
-// 部件图（scripts/generate-rig-character.mjs 程序生成，构建期打包）
-const PART_URLS = import.meta.glob('/src/assets/rig-character/*.png', {
-  eager: true,
-  query: '?url',
-  import: 'default',
-}) as Record<string, string>
-
-function partUrl(file: string): string | undefined {
-  for (const [p, url] of Object.entries(PART_URLS)) {
-    if (p.endsWith('/' + file)) return url
-  }
-  return undefined
-}
-
-const ALL_PART_FILES = [
-  ...BUILTIN_RIGGED_CHARACTER.parts.map((p) => p.image),
-  ...BUILTIN_RIGGED_CHARACTER.expressions.map((e) => e.image),
-]
+const ALL_PART_FILES = rigPartFiles(BUILTIN_RIGGED_CHARACTER)
 /** 生成脚本是否已跑过（缺图时引导用户执行脚本，不允许进入绑骨模式） */
-const RIGGED_AVAILABLE = ALL_PART_FILES.every((f) => !!partUrl(f))
+const RIGGED_AVAILABLE = riggedAvailable(BUILTIN_RIGGED_CHARACTER)
 
 type Mode = 'rigged' | 'placeholder'
 

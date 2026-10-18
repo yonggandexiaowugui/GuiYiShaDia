@@ -45,6 +45,41 @@ export interface CharacterRig {
   expressions: ExpressionDef[]
 }
 
+/** 素材 meta 中的绑骨标记（JSON 解析结果） */
+export interface RiggedMeta {
+  rigged: true
+  characterRigId: string
+}
+
+/** 解析素材 meta；非绑骨素材返回 null（整图模式） */
+export function parseRiggedMeta(meta: string | null): RiggedMeta | null {
+  if (!meta) return null
+  try {
+    const obj = JSON.parse(meta) as { rigged?: unknown; characterRigId?: unknown }
+    if (obj && obj.rigged === true && typeof obj.characterRigId === 'string') {
+      return { rigged: true, characterRigId: obj.characterRigId }
+    }
+  } catch {
+    // meta 非 JSON：视为整图素材
+  }
+  return null
+}
+
+/** 全部已注册绑骨角色（P4 起追加用户导入角色） */
+export const CHARACTER_RIGS: CharacterRig[] = []
+
+/** 按 id 查绑骨角色 */
+export function getCharacterRig(id: string): CharacterRig | undefined {
+  return CHARACTER_RIGS.find((c) => c.id === id)
+}
+
+/** 情绪 → 表情贴图文件（Clip.emotion 驱动；未映射的情绪回退平静） */
+export function expressionForEmotion(charRig: CharacterRig, emotion: string | undefined): string {
+  const map: Record<string, string> = { 开心: 'happy', 愤怒: 'angry', 惊讶: 'shocked', 害怕: 'shocked' }
+  const id = (emotion && map[emotion]) || 'calm'
+  return charRig.expressions.find((e) => e.id === id)?.image ?? charRig.expressions[0].image
+}
+
 // ---------------------------------------------------------------------------
 // 内置绑骨角色「小方」：大方脸的绑骨兄弟（同风格配色）
 // 几何与 scripts/generate-rig-character.mjs 严格一致：
@@ -84,3 +119,5 @@ export const BUILTIN_RIGGED_CHARACTER: CharacterRig = {
     { id: 'shocked', name: '惊讶', image: 'expr-shocked.png' },
   ],
 }
+
+CHARACTER_RIGS.push(BUILTIN_RIGGED_CHARACTER)

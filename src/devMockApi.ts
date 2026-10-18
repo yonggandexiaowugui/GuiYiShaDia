@@ -88,6 +88,11 @@ const MOCK_MATERIALS: Material[] = [
   makeMaterial('b-char-angry', '大方脸·愤怒', '角色', ['内置', '大方脸', '愤怒'], charSvg('愤怒', '#e08a8a')),
   makeMaterial('b-char-shocked', '大方脸·惊讶', '角色', ['内置', '大方脸', '惊讶'], charSvg('惊讶', '#b6a2e8')),
   makeMaterial('b-char-scared', '大方脸·害怕', '角色', ['内置', '大方脸', '害怕'], charSvg('害怕', '#8a9ec8')),
+  // 绑骨角色（P3）：meta.rigged 驱动 drawScene 骨骼渲染分支，缩略图仅占位
+  {
+    ...makeMaterial('b-char-rigged-xiaofang', '小方·绑骨', '角色', ['内置', '绑骨', '骨骼'], charSvg('小方', '#465a7d')),
+    meta: JSON.stringify({ source: 'builtin', rigged: true, characterRigId: 'xiaofang' }),
+  },
   makeMaterial('b-fx-question', '问号', '特效', ['内置', '表情', '问号'], effectSvg('问号', '#ffffff')),
   makeMaterial('b-fx-exclaim', '感叹号', '特效', ['内置', '表情', '感叹号'], effectSvg('感叹号', '#ff6060')),
   makeMaterial('b-fx-sweat', '汗滴', '特效', ['内置', '表情', '汗滴'], effectSvg('汗滴', '#8ad0ff')),

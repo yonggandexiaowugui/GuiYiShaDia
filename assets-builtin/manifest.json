@@ -70,6 +70,23 @@
       "emotionWeight": -0.5
     },
     {
+      "id": "builtin-char-rigged-xiaofang",
+      "name": "小方·绑骨",
+      "category": "角色",
+      "tags": [
+        "内置",
+        "绑骨",
+        "骨骼"
+      ],
+      "file": "char-rigged-xiaofang.png",
+      "minDuration": 0.5,
+      "maxDuration": 30,
+      "metaExtra": {
+        "rigged": true,
+        "characterRigId": "xiaofang"
+      }
+    },
+    {
       "id": "builtin-scene-bedroom",
       "name": "深夜卧室",
       "category": "场景",

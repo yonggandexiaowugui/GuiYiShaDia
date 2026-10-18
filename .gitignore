@@ -1,0 +1,30 @@
+# 依赖
+node_modules/
+
+# 构建产物
+dist/
+dist-electron/
+*.tsbuildinfo
+
+# 打包用 ffmpeg（体积约 216MB，用 npm run prepare:ffmpeg 按需生成）
+resources/ffmpeg/
+
+# 第三方参考项目（克隆自 SandAnim 用于参考，约 562MB）
+reference/
+
+# 生成的作品文件（可用「载入示例」+「导出视频」重新生成）
+*.mp4
+*.guiyi
+
+# 开发期临时截图 / 日志
+m1-window*.png
+guiyi-*.log
+
+# 编辑器与工具目录
+.idea/
+.trae/
+.vscode/
+
+# 系统文件
+Thumbs.db
+Desktop.ini

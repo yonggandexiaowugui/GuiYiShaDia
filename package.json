@@ -1,0 +1,59 @@
+{
+  "name": "guiyishadiao",
+  "version": "0.1.0",
+  "description": "诡异沙雕动画制作器 —— 竖屏 · AI 剧本 · 素材库 · 时间轴 · 配音字幕口型 · 一键导出",
+  "productName": "诡异沙雕",
+  "author": "GuiYiShaDiao Team",
+  "license": "MIT",
+  "main": "dist-electron/main/index.js",
+  "build": {
+    "appId": "com.guiyishadiao.app",
+    "productName": "诡异沙雕",
+    "files": ["dist/**", "dist-electron/**"],
+    "extraResources": [
+      {
+        "from": "node_modules/ffmpeg-static",
+        "to": "ffmpeg",
+        "filter": ["ffmpeg*"]
+      },
+      {
+        "from": "resources/ffmpeg",
+        "to": "ffmpeg",
+        "filter": ["ffmpeg*", "ffprobe*", "*.dll"]
+      }
+    ]
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "gen:assets": "node scripts/generate-assets.mjs",
+    "prepare:ffmpeg": "node scripts/prepare-ffmpeg.mjs",
+    "rebuild": "electron-rebuild -f -w better-sqlite3",
+    "pack": "npm run build && npm run prepare:ffmpeg && electron-builder",
+    "pack:win": "npm run build && npm run prepare:ffmpeg && electron-builder --win"
+  },
+  "dependencies": {
+    "ag-psd": "^19.0.0",
+    "better-sqlite3": "^11.10.0",
+    "ffmpeg-static": "^5.3.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "sharp": "^0.33.5",
+    "zustand": "^4.5.5"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/node": "^20.14.0",
+    "@types/react": "^18.3.5",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "electron": "^31.4.0",
+    "electron-builder": "^24.13.3",
+    "electron-rebuild": "^3.2.9",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.3",
+    "vite-plugin-electron": "^0.28.8",
+    "vite-plugin-electron-renderer": "^0.14.6"
+  }
+}

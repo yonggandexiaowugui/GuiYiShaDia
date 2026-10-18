@@ -1,0 +1,246 @@
+{
+  "version": 1,
+  "materials": [
+    {
+      "id": "builtin-char-square-idle",
+      "name": "大方脸·平静",
+      "category": "角色",
+      "tags": [
+        "内置",
+        "大方脸",
+        "平静"
+      ],
+      "file": "char-square-idle.png",
+      "minDuration": 0.8,
+      "maxDuration": 8
+    },
+    {
+      "id": "builtin-char-square-happy",
+      "name": "大方脸·开心",
+      "category": "角色",
+      "tags": [
+        "内置",
+        "大方脸",
+        "开心"
+      ],
+      "file": "char-square-happy.png",
+      "minDuration": 0.8,
+      "maxDuration": 8,
+      "emotionWeight": 1
+    },
+    {
+      "id": "builtin-char-square-angry",
+      "name": "大方脸·愤怒",
+      "category": "角色",
+      "tags": [
+        "内置",
+        "大方脸",
+        "愤怒"
+      ],
+      "file": "char-square-angry.png",
+      "minDuration": 0.8,
+      "maxDuration": 8,
+      "emotionWeight": -1
+    },
+    {
+      "id": "builtin-char-square-shocked",
+      "name": "大方脸·惊讶",
+      "category": "角色",
+      "tags": [
+        "内置",
+        "大方脸",
+        "惊讶"
+      ],
+      "file": "char-square-shocked.png",
+      "minDuration": 0.8,
+      "maxDuration": 8
+    },
+    {
+      "id": "builtin-char-square-scared",
+      "name": "大方脸·害怕",
+      "category": "角色",
+      "tags": [
+        "内置",
+        "大方脸",
+        "害怕"
+      ],
+      "file": "char-square-scared.png",
+      "minDuration": 0.8,
+      "maxDuration": 8,
+      "emotionWeight": -0.5
+    },
+    {
+      "id": "builtin-scene-bedroom",
+      "name": "深夜卧室",
+      "category": "场景",
+      "tags": [
+        "内置",
+        "场景",
+        "夜晚",
+        "卧室",
+        "诡异"
+      ],
+      "file": "scene-bedroom.png",
+      "minDuration": 1.5,
+      "maxDuration": 12,
+      "allowHardCut": true
+    },
+    {
+      "id": "builtin-scene-corridor",
+      "name": "诡异走廊",
+      "category": "场景",
+      "tags": [
+        "内置",
+        "场景",
+        "走廊",
+        "诡异",
+        "深夜"
+      ],
+      "file": "scene-corridor.png",
+      "minDuration": 1.5,
+      "maxDuration": 12,
+      "allowHardCut": true
+    },
+    {
+      "id": "builtin-scene-street",
+      "name": "午夜街道",
+      "category": "场景",
+      "tags": [
+        "内置",
+        "场景",
+        "街道",
+        "夜晚",
+        "路灯"
+      ],
+      "file": "scene-street.png",
+      "minDuration": 1.5,
+      "maxDuration": 12,
+      "allowHardCut": true
+    },
+    {
+      "id": "builtin-fx-question",
+      "name": "问号",
+      "category": "特效",
+      "tags": [
+        "内置",
+        "表情",
+        "问号"
+      ],
+      "file": "fx-question.png",
+      "maxDuration": 3
+    },
+    {
+      "id": "builtin-fx-exclaim",
+      "name": "感叹号",
+      "category": "特效",
+      "tags": [
+        "内置",
+        "表情",
+        "感叹号"
+      ],
+      "file": "fx-exclaim.png",
+      "maxDuration": 3
+    },
+    {
+      "id": "builtin-fx-sweat",
+      "name": "汗滴",
+      "category": "特效",
+      "tags": [
+        "内置",
+        "表情",
+        "汗滴"
+      ],
+      "file": "fx-sweat.png",
+      "maxDuration": 3
+    },
+    {
+      "id": "builtin-fx-blacklines",
+      "name": "无语黑线",
+      "category": "特效",
+      "tags": [
+        "内置",
+        "表情",
+        "无语黑线"
+      ],
+      "file": "fx-blacklines.png",
+      "maxDuration": 3
+    },
+    {
+      "id": "builtin-fx-redeyes",
+      "name": "红眼特效",
+      "category": "特效",
+      "tags": [
+        "内置",
+        "表情",
+        "红眼特效"
+      ],
+      "file": "fx-redeyes.png",
+      "maxDuration": 3
+    },
+    {
+      "id": "builtin-sfx-drone",
+      "name": "诡异低鸣",
+      "category": "音效",
+      "tags": [
+        "内置",
+        "氛围",
+        "诡异"
+      ],
+      "file": "sfx-drone.wav",
+      "maxDuration": 10,
+      "loopFlag": false
+    },
+    {
+      "id": "builtin-sfx-thud",
+      "name": "咚（重击）",
+      "category": "音效",
+      "tags": [
+        "内置",
+        "打击",
+        "重击"
+      ],
+      "file": "sfx-thud.wav",
+      "maxDuration": 10,
+      "loopFlag": false
+    },
+    {
+      "id": "builtin-sfx-creak",
+      "name": "吱呀（门轴）",
+      "category": "音效",
+      "tags": [
+        "内置",
+        "门",
+        "诡异"
+      ],
+      "file": "sfx-creak.wav",
+      "maxDuration": 10,
+      "loopFlag": false
+    },
+    {
+      "id": "builtin-sfx-heartbeat",
+      "name": "心跳",
+      "category": "音效",
+      "tags": [
+        "内置",
+        "紧张",
+        "心跳"
+      ],
+      "file": "sfx-heartbeat.wav",
+      "maxDuration": 10,
+      "loopFlag": false
+    },
+    {
+      "id": "builtin-sfx-whoosh",
+      "name": "嗖（快速划过）",
+      "category": "音效",
+      "tags": [
+        "内置",
+        "转场",
+        "动作"
+      ],
+      "file": "sfx-whoosh.wav",
+      "maxDuration": 10,
+      "loopFlag": false
+    }
+  ]
+}

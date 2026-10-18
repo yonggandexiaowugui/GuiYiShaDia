@@ -301,7 +301,7 @@ async function runAutoImageGen(): Promise<void> {
   }
 }
 
-/** 自动化：AI 绑骨角色自检——逐部件生成 → 校验入库 meta.rig 与 9 个部件图可取回 */
+/** 自动化：AI 绑骨角色自检——逐部件生成 → 校验入库 meta.rig 与 11 个部件图可取回 */
 async function runAutoRigGen(): Promise<void> {
   const win = mainWindow
   if (!win || win.isDestroyed()) return
@@ -336,7 +336,7 @@ async function runAutoRigGen(): Promise<void> {
              }
              const thumb = await fetch(window.api.assetUrl(mat.thumbnail_path));
              out.thumbBytes = (await thumb.arrayBuffer()).byteLength;
-             out.ok = out.partFiles === 9 && Object.values(out.bytes).every((n) => n > 200) && out.thumbBytes > 100;
+             out.ok = out.partFiles === 11 && Object.values(out.bytes).every((n) => n > 200) && out.thumbBytes > 100;
            }
          }
          return out;
@@ -387,7 +387,7 @@ async function runAutoRigBuild(): Promise<void> {
            out.customExprs = exprs.length;
            const thumb = await fetch(window.api.assetUrl(mat.thumbnail_path));
            out.thumbBytes = (await thumb.arrayBuffer()).byteLength;
-           out.ok = out.partCount === 14 && out.uniqueParts === 9 &&
+           out.ok = out.partCount === 16 && out.uniqueParts === 11 &&
              Object.values(out.bytes).every((n) => n > 200) && out.thumbBytes > 100;
          }
          return out;

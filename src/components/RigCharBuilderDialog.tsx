@@ -1,12 +1,12 @@
 // ============================================================================
 // 组装绑骨角色（P5 用户侧轻编辑）：先选槽位 → 点素材图填入 → 实时预览 → 保存
 // 几何/骨骼/pivot 全部沿用内置 manifest，用户只换"皮"，零绑骨知识
-// 未选槽位回退内置小方部件，随时可看当前组合的动画效果
+// 未选槽位回退内置小菱部件，随时可看当前组合的动画效果
 // ============================================================================
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '../services/store'
 import { BUILTIN_CLIPS, BUILTIN_RIG } from '@shared/rig'
-import { BUILTIN_RIGGED_CHARACTER } from '@shared/characterRig'
+import { BUILTIN_RIGGED_CHARACTER, RIG_PART_LABELS, RIG_PART_ORDER } from '@shared/characterRig'
 import type { CharacterRig } from '@shared/characterRig'
 import { buildWorldPose, samplePose } from '../services/rigEvaluator'
 import { partUrl, rigPartFiles } from '../services/rigParts'
@@ -20,18 +20,6 @@ const ORIGIN_Y = 400
 
 /** 可作部件皮的图片素材分类 */
 const IMG_CATEGORIES = ['场景', '角色', '表情', '特效']
-
-const PART_LABELS: Record<string, string> = {
-  'head.png': '头部',
-  'torso.png': '躯干',
-  'hip.png': '胯部',
-  'neck.png': '脖子',
-  'upper-arm.png': '大臂（左右共用）',
-  'forearm.png': '小臂（左右共用）',
-  'hand.png': '手掌（左右共用）',
-  'thigh.png': '大腿（左右共用）',
-  'shin.png': '小腿（左右共用）',
-}
 
 type SlotKind = 'part' | 'expr'
 
@@ -75,7 +63,7 @@ const RigCharBuilderDialog: React.FC<{ onClose: () => void }> = ({ onClose }) =>
     [materials],
   )
 
-  // 预览 manifest：已选槽替换皮图，未选回退内置小方
+  // 预览 manifest：已选槽替换皮图，未选回退内置小菱
   const previewRig: CharacterRig = useMemo(
     () => ({
       ...BUILTIN_RIGGED_CHARACTER,
@@ -151,7 +139,7 @@ const RigCharBuilderDialog: React.FC<{ onClose: () => void }> = ({ onClose }) =>
   }, [time, clip, previewRig, images, exprId])
 
   const filledCount = Object.values(slots).filter(Boolean).length
-  const allFilled = Object.keys(PART_LABELS).every((f) => !!slots[f])
+  const allFilled = RIG_PART_ORDER.every((f) => !!slots[f])
 
   const assign = (src: string): void => {
     if (sel.kind === 'part') setSlots((s) => ({ ...s, [sel.key]: src }))
@@ -185,7 +173,7 @@ const RigCharBuilderDialog: React.FC<{ onClose: () => void }> = ({ onClose }) =>
 
   const slotChip = (kind: SlotKind, key: string, label: string, value: string | undefined): React.ReactNode => {
     const active = sel.kind === kind && sel.key === key
-    const nameOf = value ? (imgMaterials.find((m) => m.file_path === value)?.name ?? '已选素材') : kind === 'expr' ? '内置' : '内置小方'
+    const nameOf = value ? (imgMaterials.find((m) => m.file_path === value)?.name ?? '已选素材') : kind === 'expr' ? '内置' : '内置小菱'
     return (
       <button
         key={`${kind}-${key}`}
@@ -275,10 +263,10 @@ const RigCharBuilderDialog: React.FC<{ onClose: () => void }> = ({ onClose }) =>
             </div>
             <div>
               <div className="form-hint" style={{ marginBottom: 6 }}>
-                第 1 步：点选一个槽位（已选 {filledCount}/9 个部件）
+                第 1 步：点选一个槽位（已选 {filledCount}/{RIG_PART_ORDER.length} 个部件）
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {Object.entries(PART_LABELS).map(([f, label]) => slotChip('part', f, label, slots[f]))}
+                {RIG_PART_ORDER.map((f) => slotChip('part', f, RIG_PART_LABELS[f] ?? f, slots[f]))}
               </div>
               <div className="form-hint" style={{ margin: '8px 0 6px' }}>
                 表情贴图（默认内置五官，随片段情绪切换）
@@ -290,7 +278,7 @@ const RigCharBuilderDialog: React.FC<{ onClose: () => void }> = ({ onClose }) =>
             <div style={{ flex: 1, minHeight: 0 }}>
               <div className="form-hint" style={{ marginBottom: 6 }}>
                 第 2 步：从素材库点一张图，填入当前选中的「
-                {sel.kind === 'part' ? PART_LABELS[sel.key] : BUILTIN_RIGGED_CHARACTER.expressions.find((e) => e.id === sel.key)?.name}」槽
+                {sel.kind === 'part' ? RIG_PART_LABELS[sel.key] : BUILTIN_RIGGED_CHARACTER.expressions.find((e) => e.id === sel.key)?.name}」槽
               </div>
               <div
                 style={{
@@ -325,7 +313,7 @@ const RigCharBuilderDialog: React.FC<{ onClose: () => void }> = ({ onClose }) =>
               </div>
             </div>
             <button className="primary" style={{ width: '100%' }} onClick={() => void save()} disabled={busy || !allFilled || !name.trim()}>
-              {busy ? '⏳ 保存中…' : allFilled ? '💾 保存为绑骨角色素材' : '9 个部件槽全部选图后可保存'}
+              {busy ? '⏳ 保存中…' : allFilled ? '💾 保存为绑骨角色素材' : `${RIG_PART_ORDER.length} 个部件槽全部选图后可保存`}
             </button>
             {msg && (
               <div className={`preview-msg ${msg.kind}`}>
@@ -339,7 +327,7 @@ const RigCharBuilderDialog: React.FC<{ onClose: () => void }> = ({ onClose }) =>
           </div>
         </div>
         <div className="modal-foot">
-          <span className="hint">未选的槽位预览时显示内置小方部件，不影响试验</span>
+          <span className="hint">未选的槽位预览时显示内置小菱部件，不影响试验</span>
           <div>
             <button onClick={onClose} disabled={busy}>关闭</button>
             <button

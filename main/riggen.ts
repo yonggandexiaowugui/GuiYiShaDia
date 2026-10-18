@@ -1,6 +1,6 @@
 // ============================================================================
 // AI 绑骨角色生成（P4）：用户输入角色名 + 风格描述 → 逐部件 AI 生成 → 入库
-// 管线：9 个部件（左右共用图）同 seed 逐张生成 → 白底边缘泛洪抠图 → trim
+// 管线：11 个部件（左右共用图）同 seed 逐张生成 → 白底边缘泛洪抠图 → trim
 //      → 拉伸进 manifest 固定画布（3px/单位，含 3 单位出血边）→ 落盘 → 入库
 // 硬约束：
 // - AI 永不自动绑骨/标 pivot：几何完全复用 BUILTIN_RIGGED_CHARACTER 的 manifest
@@ -15,39 +15,14 @@ import { addMaterial, resolveAsset } from './database'
 import { generateThumbnail } from './media'
 import { generateBytes, getImageGenConfig } from './imagegen'
 import { log } from './log'
-import { BUILTIN_RIGGED_CHARACTER } from '../shared/characterRig'
+import { BUILTIN_RIGGED_CHARACTER, RIG_PART_LABELS, RIG_PART_ORDER } from '../shared/characterRig'
 import type { CharacterRig } from '../shared/characterRig'
 import type { ImageGenResult, RigCharacterProgress } from '../shared/types'
 
-/** 生成尺寸：部件画布最大 306×330（3px/单位），512 足够且更快 */
+/** 生成尺寸：最高部件画布 354×738（后发 118×246 单位），512 源拉伸可接受（平涂卡通） */
 const GEN_SIZE = 512
 /** 出血边：3 角色单位 × 3px */
 const BLEED = 9
-
-/** 部件生成顺序（头部先出，便于用户尽早看到效果） */
-const PART_ORDER = [
-  'head.png',
-  'torso.png',
-  'hip.png',
-  'neck.png',
-  'upper-arm.png',
-  'forearm.png',
-  'hand.png',
-  'thigh.png',
-  'shin.png',
-]
-
-const PART_LABELS: Record<string, string> = {
-  'head.png': '头部',
-  'torso.png': '躯干',
-  'hip.png': '胯部',
-  'neck.png': '脖子',
-  'upper-arm.png': '大臂',
-  'forearm.png': '小臂',
-  'hand.png': '手掌',
-  'thigh.png': '大腿',
-  'shin.png': '小腿',
-}
 
 /**
  * 部件单体描述：「2D 木偶部件」框架（经三轮实测，此措辞在免费档上出图最平、描边最稳）。
@@ -55,7 +30,11 @@ const PART_LABELS: Record<string, string> = {
  */
 const PART_PROMPTS: Record<string, string> = {
   'head.png':
-    '2D puppet part: one blank cartoon head only, rounded square shape, completely empty face, no eyes, no eyebrows, no nose, no mouth, no facial features at all',
+    '2D puppet part: one blank cartoon head only, rounded egg shape, completely empty face, no eyes, no eyebrows, no nose, no mouth, no facial features at all',
+  'back-hair.png':
+    '2D puppet part: one long straight ponytail hairstyle seen from behind only, rounded hair cap on top with a single long flowing ponytail hanging down, no face, no skin, no head, no body, not a full character',
+  'front-hair.png':
+    '2D puppet part: one cartoon bangs fringe hair piece only, wide flat shape with center parting, one small gold tassel hair ornament on the side, no face, no head, no body, not a full character',
   'torso.png':
     '2D puppet part: one cartoon torso clothing piece only (chest and belly), rounded rectangle shape, no head, no face, no arms, no hands, no legs, not a full character',
   'hip.png':
@@ -327,7 +306,7 @@ export async function generateRigCharacter(
 
   fs.mkdirSync(absDir, { recursive: true })
   try {
-    const total = PART_ORDER.length
+    const total = RIG_PART_ORDER.length
     // pollinations 免费档 45 秒/张：逐部件节流，间隔 50 秒（首张不等）；
     // generateBytes 内部的 402 等待作为兜底，实测仅靠它会撞窗口边界
     let lastGenAt = 0
@@ -339,8 +318,8 @@ export async function generateRigCharacter(
       lastGenAt = Date.now()
     }
     for (let i = 0; i < total; i++) {
-      const file = PART_ORDER[i]
-      const label = PART_LABELS[file] ?? file
+      const file = RIG_PART_ORDER[i]
+      const label = RIG_PART_LABELS[file] ?? file
       onProgress?.({ step: i + 1, total, part: file, label })
       const spec = BUILTIN_RIGGED_CHARACTER.parts.find((p) => p.image === file)
       if (!spec) throw new Error(`manifest 缺少部件 ${file}`)

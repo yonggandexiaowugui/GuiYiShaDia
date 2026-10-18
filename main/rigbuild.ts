@@ -1,5 +1,5 @@
 // ============================================================================
-// 组装绑骨角色（P5 用户侧轻编辑）：用户从素材库选图填 9 部件槽 → 拷贝规格化
+// 组装绑骨角色（P5 用户侧轻编辑）：用户从素材库选图填 11 部件槽 → 拷贝规格化
 // → 内联 rig 入素材库。几何/骨骼/pivot 全部沿用 BUILTIN manifest——
 // 用户只换"皮"，永不碰骨骼与标定（呼应"绑定流程需人工完成、AI 永不自动绑骨"）
 // ============================================================================
@@ -10,40 +10,16 @@ import sharp from 'sharp'
 import { addMaterial, resolveAsset } from './database'
 import { generateThumbnail } from './media'
 import { log } from './log'
-import { BUILTIN_RIGGED_CHARACTER } from '../shared/characterRig'
+import { BUILTIN_RIGGED_CHARACTER, RIG_PART_LABELS, RIG_PART_ORDER } from '../shared/characterRig'
 import type { CharacterRig } from '../shared/characterRig'
 import type { ImageGenResult } from '../shared/types'
 
 /** px/角色空间单位（与 riggen/manifest 一致） */
 const S = 3
 
-const PART_ORDER = [
-  'head.png',
-  'torso.png',
-  'hip.png',
-  'neck.png',
-  'upper-arm.png',
-  'forearm.png',
-  'hand.png',
-  'thigh.png',
-  'shin.png',
-]
-
-const PART_LABELS: Record<string, string> = {
-  'head.png': '头部',
-  'torso.png': '躯干',
-  'hip.png': '胯部',
-  'neck.png': '脖子',
-  'upper-arm.png': '大臂',
-  'forearm.png': '小臂',
-  'hand.png': '手掌',
-  'thigh.png': '大腿',
-  'shin.png': '小腿',
-}
-
 /**
  * 组装绑骨角色并入库。
- * @param parts 9 部件槽：部件文件名 → 来源素材相对路径（素材库 file_path）
+ * @param parts 11 部件槽：部件文件名 → 来源素材相对路径（素材库 file_path）
  * @param expressions 表情槽：exprId → 来源素材相对路径；缺省项复用内置 expr-*.png
  */
 export async function buildRigCharacter(
@@ -53,13 +29,13 @@ export async function buildRigCharacter(
 ): Promise<ImageGenResult> {
   const charName = name.trim()
   if (!charName) return { ok: false, message: '请给角色起个名字' }
-  const missing = PART_ORDER.filter((f) => !parts[f])
+  const missing = RIG_PART_ORDER.filter((f) => !parts[f])
   if (missing.length > 0) {
-    return { ok: false, message: `还有部件未选图：${missing.map((f) => PART_LABELS[f]).join('、')}` }
+    return { ok: false, message: `还有部件未选图：${missing.map((f) => RIG_PART_LABELS[f]).join('、')}` }
   }
-  for (const f of PART_ORDER) {
+  for (const f of RIG_PART_ORDER) {
     if (!fs.existsSync(resolveAsset(parts[f]))) {
-      return { ok: false, message: `部件「${PART_LABELS[f]}」的来源图不存在，请重新选择` }
+      return { ok: false, message: `部件「${RIG_PART_LABELS[f]}」的来源图不存在，请重新选择` }
     }
   }
 
@@ -69,7 +45,7 @@ export async function buildRigCharacter(
   fs.mkdirSync(absDir, { recursive: true })
   try {
     // 部件：统一拉伸到 manifest 画布（渲染即按此尺寸绘制，所见即所得）
-    for (const file of PART_ORDER) {
+    for (const file of RIG_PART_ORDER) {
       const spec = BUILTIN_RIGGED_CHARACTER.parts.find((p) => p.image === file)
       if (!spec) throw new Error(`manifest 缺少部件 ${file}`)
       await sharp(resolveAsset(parts[file]))
@@ -114,7 +90,7 @@ export async function buildRigCharacter(
       thumbnail_path: thumbRel,
       meta: JSON.stringify({ source: 'user-rig', rigged: true, characterRigId: rig.id, rig }),
     })
-    log(`rigbuild: ok 「${charName}」 9 parts + ${Object.keys(exprImages).length} exprs`)
+    log(`rigbuild: ok 「${charName}」 ${RIG_PART_ORDER.length} parts + ${Object.keys(exprImages).length} exprs`)
     return { ok: true, material }
   } catch (e) {
     fs.rmSync(absDir, { recursive: true, force: true })

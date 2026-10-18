@@ -37,10 +37,13 @@ export function drawRiggedCharacterPreview(
   ctx.imageSmoothingEnabled = true
   ctx.imageSmoothingQuality = 'high'
 
-  for (const boneId of RIG_DRAW_ORDER) {
-    const part = charRig.parts.find((p) => p.boneId === boneId)
+  // 部件按 drawKey（缺省 boneId）分层排序绘制；同骨多部件（双发层）各占一层
+  const byKey = new Map<string, (typeof charRig.parts)[number]>()
+  for (const p of charRig.parts) byKey.set(p.drawKey ?? p.boneId, p)
+  for (const key of RIG_DRAW_ORDER) {
+    const part = byKey.get(key)
     if (!part) continue
-    const w = world.get(boneId)
+    const w = world.get(part.boneId)
     const img = images.get(part.image)
     if (!w || !img) continue
     ctx.save()

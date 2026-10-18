@@ -47,11 +47,14 @@ export function rigPartUrls(charRig: CharacterRig, assetUrl?: AssetUrlFn): strin
     .filter((u) => u !== '')
 }
 
-/** 部件绘制顺序：先四肢（下层），后躯干/头（上层） */
+/** 绘制分层顺序：后发（最底）→ 四肢 → 躯干链 → 头 → 前发（最顶）。
+ * 条目与部件的 drawKey（缺省 boneId）匹配；旧 9 部件 rig 无发件自动跳过 */
 export const RIG_DRAW_ORDER = [
+  'back-hair',
   'thighL', 'shinL', 'thighR', 'shinR',
   'upperArmL', 'forearmL', 'handL', 'upperArmR', 'forearmR', 'handR',
-  'root', 'hip', 'spine', 'neck', 'head',
+  'hip', 'spine', 'neck', 'head',
+  'front-hair',
 ]
 
 /** 检查某角色的部件图是否全部就绪（生成脚本未跑时为 false） */

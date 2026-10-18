@@ -91,18 +91,18 @@ const MOCK_MATERIALS: Material[] = [
   makeMaterial('b-char-scared', '大方脸·害怕', '角色', ['内置', '大方脸', '害怕'], charSvg('害怕', '#8a9ec8')),
   // 绑骨角色（P3）：meta.rigged 驱动 drawScene 骨骼渲染分支，缩略图仅占位
   {
-    ...makeMaterial('b-char-rigged-xiaofang', '小方·绑骨', '角色', ['内置', '绑骨', '骨骼'], charSvg('小方', '#465a7d')),
+    ...makeMaterial('b-char-rigged-xiaofang', '小菱·绑骨', '角色', ['内置', '绑骨', '骨骼'], charSvg('小菱', '#465a7d')),
     meta: JSON.stringify({ source: 'builtin', rigged: true, characterRigId: 'xiaofang' }),
   },
   // 内联 rig 绑骨角色（P4）：模拟 AI 生成产物——manifest 直接存在 meta.rig 里，
-  // 部件图复用小方的内置图（纯文件名走 glob），验证 resolveCharacterRig 内联路径
+  // 部件图复用小菱的内置图（纯文件名走 glob），验证 resolveCharacterRig 内联路径
   {
-    ...makeMaterial('b-char-rigged-inline', '小方·AI内联骨骼', '角色', ['内置', '绑骨', 'AI模拟'], charSvg('内联', '#7d5a46')),
+    ...makeMaterial('b-char-rigged-inline', '小菱·AI内联骨骼', '角色', ['内置', '绑骨', 'AI模拟'], charSvg('内联', '#7d5a46')),
     meta: JSON.stringify({
       source: 'ai-rig',
       rigged: true,
       characterRigId: 'xiaofang-inline',
-      rig: { ...BUILTIN_RIGGED_CHARACTER, id: 'xiaofang-inline', name: '小方·AI内联' },
+      rig: { ...BUILTIN_RIGGED_CHARACTER, id: 'xiaofang-inline', name: '小菱·AI内联' },
     }),
   },
   makeMaterial('b-fx-question', '问号', '特效', ['内置', '表情', '问号'], effectSvg('问号', '#ffffff')),

@@ -9,6 +9,8 @@
 /** 单个部件 → 骨映射 */
 export interface RiggedPart {
   boneId: string
+  /** 绘制分层键（缺省回退 boneId）：同骨多部件（如双发层）靠它排序 */
+  drawKey?: string
   /** 部件图：内置角色为文件名（src/assets/rig-character/ 下）；AI 角色为相对资源路径（assets/...） */
   image: string
   /** 角色空间尺寸（含出血边，单位同 rig.height=400 体系） */
@@ -107,37 +109,43 @@ export function expressionForEmotion(charRig: CharacterRig, emotion: string | un
 }
 
 // ---------------------------------------------------------------------------
-// 内置绑骨角色「小方」：大方脸的绑骨兄弟（同风格配色）
+// 内置绑骨角色「小菱」（v2 Q 版黑金军装风，参考用户提供的 chibi 立绘）：
+// 约 2.7 头身、大面积黑长发（后发层压躯干下/刘海层叠脸上）、空白脸叠表情贴图
 // 几何与 scripts/generate-rig-character.mjs 严格一致：
 // 所有部件图四周含 3 单位出血边，pivot 比例已含出血
+// id 保留 'xiaofang'：旧工程/已播种素材按 id 引用注册表，皮自动换新
 // ---------------------------------------------------------------------------
 export const BUILTIN_RIGGED_CHARACTER: CharacterRig = {
   id: 'xiaofang',
-  name: '小方（绑骨）',
+  name: '小菱（绑骨）',
   rigId: 'q14',
   parts: [
+    // 后发层：大马尾垂到臀下，压在全身最底层（随 head 骨转）；画布加宽让马尾露出躯干侧缘
+    { boneId: 'head', drawKey: 'back-hair', image: 'back-hair.png', width: 150, height: 246, pivotX: 0.5, pivotY: 0.2561 },
     // 躯干链
-    { boneId: 'hip', image: 'hip.png', width: 82, height: 62, pivotX: 0.5, pivotY: 0.5 },
-    { boneId: 'spine', image: 'torso.png', width: 94, height: 134, pivotX: 0.5, pivotY: 0.5597 },
-    { boneId: 'neck', image: 'neck.png', width: 30, height: 36, pivotX: 0.5, pivotY: 0.5 },
-    { boneId: 'head', image: 'head.png', width: 102, height: 110, pivotX: 0.5, pivotY: 0.5182 },
+    { boneId: 'hip', drawKey: 'hip', image: 'hip.png', width: 102, height: 66, pivotX: 0.5, pivotY: 0.2879 },
+    { boneId: 'spine', drawKey: 'spine', image: 'torso.png', width: 110, height: 106, pivotX: 0.5, pivotY: 0.6887 },
+    { boneId: 'neck', drawKey: 'neck', image: 'neck.png', width: 30, height: 36, pivotX: 0.5, pivotY: 0.5 },
+    { boneId: 'head', drawKey: 'head', image: 'head.png', width: 124, height: 128, pivotX: 0.5, pivotY: 0.5859 },
     // 左臂（圆头胶囊，关节帽圆心 = pivot）
-    { boneId: 'upperArmL', image: 'upper-arm.png', width: 32, height: 100, pivotX: 0.5, pivotY: 0.16 },
-    { boneId: 'forearmL', image: 'forearm.png', width: 28, height: 88, pivotX: 0.5, pivotY: 0.1591 },
-    { boneId: 'handL', image: 'hand.png', width: 30, height: 44, pivotX: 0.5, pivotY: 0.3409 },
+    { boneId: 'upperArmL', drawKey: 'upperArmL', image: 'upper-arm.png', width: 44, height: 86, pivotX: 0.5, pivotY: 0.1163 },
+    { boneId: 'forearmL', drawKey: 'forearmL', image: 'forearm.png', width: 40, height: 78, pivotX: 0.5, pivotY: 0.1282 },
+    { boneId: 'handL', drawKey: 'handL', image: 'hand.png', width: 32, height: 42, pivotX: 0.5, pivotY: 0.1905 },
     // 右臂（镜像共用同图）
-    { boneId: 'upperArmR', image: 'upper-arm.png', width: 32, height: 100, pivotX: 0.5, pivotY: 0.16 },
-    { boneId: 'forearmR', image: 'forearm.png', width: 28, height: 88, pivotX: 0.5, pivotY: 0.1591 },
-    { boneId: 'handR', image: 'hand.png', width: 30, height: 44, pivotX: 0.5, pivotY: 0.3409 },
+    { boneId: 'upperArmR', drawKey: 'upperArmR', image: 'upper-arm.png', width: 44, height: 86, pivotX: 0.5, pivotY: 0.1163 },
+    { boneId: 'forearmR', drawKey: 'forearmR', image: 'forearm.png', width: 40, height: 78, pivotX: 0.5, pivotY: 0.1282 },
+    { boneId: 'handR', drawKey: 'handR', image: 'hand.png', width: 32, height: 42, pivotX: 0.5, pivotY: 0.1905 },
     // 左腿
-    { boneId: 'thighL', image: 'thigh.png', width: 36, height: 126, pivotX: 0.5, pivotY: 0.1429 },
-    { boneId: 'shinL', image: 'shin.png', width: 30, height: 118, pivotX: 0.5, pivotY: 0.1271 },
+    { boneId: 'thighL', drawKey: 'thighL', image: 'thigh.png', width: 44, height: 106, pivotX: 0.5, pivotY: 0.0943 },
+    { boneId: 'shinL', drawKey: 'shinL', image: 'shin.png', width: 42, height: 114, pivotX: 0.5, pivotY: 0.1053 },
     // 右腿
-    { boneId: 'thighR', image: 'thigh.png', width: 36, height: 126, pivotX: 0.5, pivotY: 0.1429 },
-    { boneId: 'shinR', image: 'shin.png', width: 30, height: 118, pivotX: 0.5, pivotY: 0.1271 },
+    { boneId: 'thighR', drawKey: 'thighR', image: 'thigh.png', width: 44, height: 106, pivotX: 0.5, pivotY: 0.0943 },
+    { boneId: 'shinR', drawKey: 'shinR', image: 'shin.png', width: 42, height: 114, pivotX: 0.5, pivotY: 0.1053 },
+    // 前发层：刘海 + 金色流苏发饰，叠在脸上层最顶（不挡表情区）
+    { boneId: 'head', drawKey: 'front-hair', image: 'front-hair.png', width: 128, height: 74, pivotX: 0.5, pivotY: 0.9324 },
   ],
-  // 表情锚点：62×46 区域，中心在 head pivot 正下 4 单位（大致面部中上部）
-  face: { width: 62, height: 46, offsetX: 0, offsetY: 4 },
+  // 表情锚点：70×52 区域，中心在 head pivot 正下 6 单位（大致面部中上部）
+  face: { width: 70, height: 52, offsetX: 0, offsetY: 6 },
   expressions: [
     { id: 'calm', name: '平静', image: 'expr-calm.png' },
     { id: 'happy', name: '开心', image: 'expr-happy.png' },
@@ -147,3 +155,36 @@ export const BUILTIN_RIGGED_CHARACTER: CharacterRig = {
 }
 
 CHARACTER_RIGS.push(BUILTIN_RIGGED_CHARACTER)
+
+// ---------------------------------------------------------------------------
+// 部件槽位表（P4 AI 生成 / P5 组装共用单一事实源，避免三副本漂移）
+// ---------------------------------------------------------------------------
+/** 9 身体部件 + 2 发件的生成顺序（头部先出） */
+export const RIG_PART_ORDER = [
+  'head.png',
+  'back-hair.png',
+  'front-hair.png',
+  'torso.png',
+  'hip.png',
+  'neck.png',
+  'upper-arm.png',
+  'forearm.png',
+  'hand.png',
+  'thigh.png',
+  'shin.png',
+]
+
+/** 部件文件 → 中文槽位名 */
+export const RIG_PART_LABELS: Record<string, string> = {
+  'head.png': '头部',
+  'back-hair.png': '后发（马尾）',
+  'front-hair.png': '刘海/发饰',
+  'torso.png': '躯干（上装）',
+  'hip.png': '胯部（下装）',
+  'neck.png': '脖子',
+  'upper-arm.png': '大臂（左右共用）',
+  'forearm.png': '小臂（左右共用）',
+  'hand.png': '手（左右共用）',
+  'thigh.png': '大腿（左右共用）',
+  'shin.png': '小腿/鞋（左右共用）',
+}

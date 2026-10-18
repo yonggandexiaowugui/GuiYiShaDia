@@ -52,6 +52,9 @@ function genId(): string {
 
 let toastSeq = 0
 
+/** 片段剪贴板：带上所属轨道类型，便于目标轨道已被删除时回退到同类型轨道 */
+let clipClipboard: Array<{ clip: Clip; trackType: TrackType }> = []
+
 const TYPE_LABELS: Record<TrackType, string> = {
   scene: '场景',
   character: '角色',
@@ -140,8 +143,20 @@ interface GuiYiState {
   resizeClip: (trackId: string, clipId: string, edge: 'l' | 'r', newValue: number) => void
   /** mode: replace 单选 / toggle 多选(Ctrl) / range 区间(Shift) */
   selectClip: (sel: SelectedClip | null, mode?: 'replace' | 'toggle' | 'range') => void
+  /** 直接设置选中集合（框选用），主片段取集合第一个 */
+  setSelection: (ids: string[]) => void
+  /** 全选所有片段 */
+  selectAllClips: () => void
   /** 删除全部选中片段 */
   deleteSelectedClips: () => void
+  /** 以给定原点整体平移一组片段（群组拖拽用），整体夹到 0 以上 */
+  moveClipsAsGroup: (origins: Array<{ clipId: string; start: number }>, deltaSec: number) => void
+  /** 方向键微调：对当前选中片段整体平移（自带历史快照） */
+  nudgeSelectedClips: (deltaSec: number) => void
+  /** 复制选中片段到内部剪贴板 */
+  copySelectedClips: () => void
+  /** 在播放头处粘贴剪贴板片段 */
+  pasteClips: () => void
   duplicateClip: (trackId: string, clipId: string) => void
   moveClipToTrack: (clipId: string, fromTrackId: string, toTrackId: string, newStart: number) => void
 
@@ -708,6 +723,26 @@ export const useStore = create<GuiYiState>((set, get) => {
     set({ selectedClip: sel, selectedIds: order.slice(lo, hi + 1) })
   },
 
+  setSelection: (ids) => {
+    const st = get()
+    if (ids.length === 0) {
+      set({ selectedIds: [], selectedClip: null })
+      return
+    }
+    const primary = st.tracks
+      .flatMap((t) => t.clips.map((c) => ({ trackId: t.id, clipId: c.id })))
+      .find((x) => ids.includes(x.clipId))
+    set({ selectedIds: ids, selectedClip: primary ?? null })
+  },
+
+  selectAllClips: () => {
+    const st = get()
+    const all = st.tracks.flatMap((t) => t.clips.map((c) => ({ trackId: t.id, clipId: c.id })))
+    if (all.length === 0) return
+    set({ selectedIds: all.map((a) => a.clipId), selectedClip: all[0] })
+  },
+
+  /** 删除全部选中片段 */
   deleteSelectedClips: () => {
     const st = get()
     const ids = st.selectedIds.length > 0
@@ -723,6 +758,94 @@ export const useStore = create<GuiYiState>((set, get) => {
       selectedIds: [],
     })
     st.pushToast(ids.length > 1 ? `已删除 ${ids.length} 个片段` : '已删除片段')
+  },
+
+  moveClipsAsGroup: (origins, deltaSec) => {
+    if (origins.length === 0) return
+    const st = get()
+    // 整体夹到 0 以上，保证组内相对位置不被打乱
+    const delta = Math.max(deltaSec, -Math.min(...origins.map((o) => o.start)))
+    if (Math.abs(delta) < 1e-6) return
+    const next = new Map(origins.map((o) => [o.clipId, Math.max(0, o.start + delta)]))
+    set({
+      tracks: st.tracks.map((t) => ({
+        ...t,
+        clips: t.clips.map((c) => (next.has(c.id) ? { ...c, start: next.get(c.id)! } : c)),
+      })),
+    })
+  },
+
+  nudgeSelectedClips: (deltaSec) => {
+    const st = get()
+    const ids = st.selectedIds.length > 0
+      ? st.selectedIds
+      : st.selectedClip
+        ? [st.selectedClip.clipId]
+        : []
+    if (ids.length === 0) return
+    const origins = st.tracks
+      .flatMap((t) => t.clips)
+      .filter((c) => ids.includes(c.id))
+      .map((c) => ({ clipId: c.id, start: c.start }))
+    snapshot()
+    st.moveClipsAsGroup(origins, deltaSec)
+  },
+
+  copySelectedClips: () => {
+    const st = get()
+    const ids = st.selectedIds.length > 0
+      ? st.selectedIds
+      : st.selectedClip
+        ? [st.selectedClip.clipId]
+        : []
+    if (ids.length === 0) {
+      st.pushToast('没有选中片段')
+      return
+    }
+    const items: Array<{ clip: Clip; trackType: TrackType }> = []
+    for (const t of st.tracks) {
+      for (const c of t.clips) {
+        if (ids.includes(c.id)) items.push({ clip: { ...c }, trackType: t.type })
+      }
+    }
+    clipClipboard = items
+    st.pushToast(`已复制 ${items.length} 个片段`)
+  },
+
+  pasteClips: () => {
+    const st = get()
+    if (clipClipboard.length === 0) {
+      st.pushToast('剪贴板为空')
+      return
+    }
+    snapshot()
+    const base = Math.min(...clipClipboard.map((i) => i.clip.start))
+    const at = st.currentTime
+    const tracks = st.tracks.map((t) => ({ ...t, clips: [...t.clips] }))
+    const newIds: string[] = []
+    for (const item of clipClipboard) {
+      // 优先粘回原轨道；原轨道已被删除时回退到同类型的首个轨道
+      const target =
+        tracks.find((t) => t.id === item.clip.trackId) ?? tracks.find((t) => t.type === item.trackType)
+      if (!target) continue
+      const copy: Clip = {
+        ...item.clip,
+        id: genId(),
+        trackId: target.id,
+        start: Math.max(0, at + (item.clip.start - base)),
+      }
+      target.clips.push(copy)
+      newIds.push(copy.id)
+    }
+    if (newIds.length === 0) {
+      st.pushToast('没有可粘贴的目标轨道')
+      return
+    }
+    const primary = tracks
+      .flatMap((t) => t.clips.map((c) => ({ trackId: t.id, clipId: c.id })))
+      .find((x) => newIds.includes(x.clipId))
+    set({ tracks, selectedIds: newIds, selectedClip: primary ?? null })
+    st.pushToast(`已粘贴 ${newIds.length} 个片段（${at.toFixed(1)}s 处）`)
   },
 
   // ---- 轨道管理（多条素材叠加） ----

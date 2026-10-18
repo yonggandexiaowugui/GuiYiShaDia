@@ -38,6 +38,35 @@ function useGlobalShortcuts(): void {
       }
       if (isTyping(e.target)) return
 
+      if (mod && e.key.toLowerCase() === 'c') {
+        if (st.selectedIds.length > 0 || st.selectedClip) {
+          e.preventDefault()
+          st.copySelectedClips()
+        }
+        return
+      }
+      if (mod && e.key.toLowerCase() === 'v') {
+        e.preventDefault()
+        st.pasteClips()
+        return
+      }
+      if (mod && e.key.toLowerCase() === 'a') {
+        e.preventDefault()
+        st.selectAllClips()
+        return
+      }
+      if (e.key === 'Escape') {
+        st.selectClip(null)
+        return
+      }
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        if (st.selectedIds.length === 0) return
+        e.preventDefault()
+        const step = e.shiftKey ? 1 : 0.1
+        st.nudgeSelectedClips(e.key === 'ArrowLeft' ? -step : step)
+        return
+      }
+
       if (e.key === 'Delete' || e.key === 'Backspace') {
         if (st.selectedIds.length > 0 || st.selectedClip) {
           e.preventDefault()

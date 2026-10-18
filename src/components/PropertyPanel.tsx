@@ -169,17 +169,40 @@ const PropertyPanel: React.FC = () => {
         </>
       )}
 
-      {/* 配音：文字 + 重新生成 */}
+      {/* 配音：台词 + 独立字幕 + 重新生成 */}
       {track.type === 'voice' && (
         <>
           <div className="form-row">
-            <label>配音文字</label>
+            <label>配音台词</label>
             <textarea
               value={clip.text ?? ''}
               onChange={(e) => update({ text: e.target.value })}
               rows={3}
               style={{ resize: 'vertical' }}
+              placeholder="生成 TTS 的内容…"
             />
+          </div>
+          <div className="form-row">
+            <label>字幕文本</label>
+            <textarea
+              value={clip.subtitle ?? clip.text ?? ''}
+              onChange={(e) => update({ subtitle: e.target.value })}
+              rows={2}
+              style={{ resize: 'vertical' }}
+              placeholder="留空则不显示字幕"
+            />
+            <div className="form-hint">
+              {clip.subtitle === undefined
+                ? '跟随配音台词'
+                : clip.subtitle.trim() === ''
+                  ? '已关闭字幕（画面不显示）'
+                  : '使用自定义字幕（与配音独立）'}
+            </div>
+            {clip.subtitle !== undefined && (
+              <button className="btn" style={{ width: '100%', marginTop: 4 }} onClick={() => update({ subtitle: undefined })}>
+                恢复为跟随配音台词
+              </button>
+            )}
           </div>
           <div className="form-row">
             <label>状态</label>

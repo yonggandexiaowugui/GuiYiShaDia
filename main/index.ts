@@ -113,11 +113,102 @@ function createWindow(): void {
     mainWindow.webContents.once('did-finish-load', () => {
       void runAutoExport(process.env.GUIYI_AUTO_EXPORT as string)
     })
+  } else if (!app.isPackaged && process.env.GUIYI_AUTO_TEST === 'bgremove') {
+    mainWindow.webContents.once('did-finish-load', () => {
+      void runAutoBgRemove()
+    })
+  } else if (!app.isPackaged && process.env.GUIYI_AUTO_TEST === 'imagegen') {
+    mainWindow.webContents.once('did-finish-load', () => {
+      void runAutoImageGen()
+    })
   }
 
   mainWindow.on('closed', () => {
     mainWindow = null
   })
+}
+
+/** 自动化：去背景链路自检——导入一张真实照片 → IPC 去背景 → 校验产物 */
+async function runAutoBgRemove(): Promise<void> {
+  const win = mainWindow
+  if (!win || win.isDestroyed()) return
+  const photoPath = process.env.GUIYI_AUTO_PHOTO
+  if (!photoPath) {
+    log('autobg: skipped (GUIYI_AUTO_PHOTO not set)')
+    return
+  }
+  log(`autobg: start`)
+  try {
+    const result = await win.webContents.executeJavaScript(
+      `(async () => {
+         const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+         for (let i = 0; i < 100 && !window.__guiyiStore; i++) await wait(100);
+         if (!window.__guiyiStore) return { ok: false, message: 'store 未暴露' };
+         const s = () => window.__guiyiStore.getState();
+         const out = {};
+         await s().loadMaterials();
+         const imported = await window.api.importImage(${JSON.stringify(photoPath)});
+         out.imported = { id: imported.id, name: imported.name, category: imported.category };
+         const t0 = Date.now();
+         const created = await window.api.removeBackground(imported.id);
+         out.created = {
+           id: created.id,
+           name: created.name,
+           category: created.category,
+           tags: created.tags,
+           seconds: Math.round((Date.now() - t0) / 100) / 10,
+         };
+         // 校验产物可经 guiyi:// 协议取回且尺寸合理
+         const url = window.api.assetUrl(created.file_path);
+         const resp = await fetch(url);
+         const buf = await resp.arrayBuffer();
+         out.pngBytes = buf.byteLength;
+         out.ok = out.pngBytes > 100;
+         return out;
+       })()`,
+      true,
+    )
+    log(`autobg: done ${JSON.stringify(result)}`)
+  } catch (e) {
+    log(`autobg: failed ${e instanceof Error ? e.message : String(e)}`)
+  }
+}
+
+/** 自动化：AI 生成素材自检——默认公共源生成一张 → 校验入库产物可取回 */
+async function runAutoImageGen(): Promise<void> {
+  const win = mainWindow
+  if (!win || win.isDestroyed()) return
+  log('autoimg: start')
+  try {
+    const result = await win.webContents.executeJavaScript(
+      `(async () => {
+         const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+         for (let i = 0; i < 100 && !window.__guiyiStore; i++) await wait(100);
+         if (!window.__guiyiStore) return { ok: false, message: 'store 未暴露' };
+         const s = () => window.__guiyiStore.getState();
+         const out = {};
+         await s().loadMaterials();
+         const before = s().materials.length;
+         const res = await window.api.generateImageMaterial('a fat orange cat wearing sunglasses, cartoon sticker style', '角色');
+         out.res = { ok: res.ok, message: res.message, seconds: res.seconds, name: res.material?.name, category: res.material?.category, tags: res.material?.tags };
+         await s().loadMaterials();
+         out.materialsBefore = before;
+         out.materialsAfter = s().materials.length;
+         if (res.ok && res.material) {
+           const resp = await fetch(window.api.assetUrl(res.material.file_path));
+           out.bytes = (await resp.arrayBuffer()).byteLength;
+           const thumbResp = await fetch(window.api.assetUrl(res.material.thumbnail_path));
+           out.thumbBytes = (await thumbResp.arrayBuffer()).byteLength;
+         }
+         out.ok = res.ok === true && out.materialsAfter === before + 1;
+         return out;
+       })()`,
+      true,
+    )
+    log(`autoimg: done ${JSON.stringify(result)}`)
+  } catch (e) {
+    log(`autoimg: failed ${e instanceof Error ? e.message : String(e)}`)
+  }
 }
 
 /** 自动执行一次「载入示例 → 导出」，结果写入主进程日志 */
@@ -178,6 +269,146 @@ async function runAutoExport(outPath: string): Promise<void> {
          await wait(250);
          out.clipsAfterOpen = count(s().tracks);
          out.roundTripOk = out.clipsAfterOpen === out.clipsBefore;
+
+         // ---- 选择集合 / 剪贴板 / 群组平移 / 微调（新增能力自检） ----
+         s().loadDemo('mystery');
+         await wait(300);
+         {
+           const refs2 = s().tracks.flatMap((t) => t.clips.map((c) => ({ trackId: t.id, clipId: c.id })));
+           const pick = (id) => s().tracks.flatMap((t) => t.clips).find((c) => c.id === id);
+
+           // 全选
+           s().selectAllClips();
+           out.selectAll = s().selectedIds.length;
+
+           // 复制 → 粘贴（粘贴到播放头 0s）
+           s().setCurrentTime(0);
+           s().copySelectedClips();
+           const beforePaste = count(s().tracks);
+           s().pasteClips();
+           await wait(80);
+           out.paste = { before: beforePaste, after: count(s().tracks), selected: s().selectedIds.length };
+           s().undo();
+           await wait(80);
+           out.pasteUndo = count(s().tracks);
+
+           // 群组平移：跨轨道选中两个片段，整体 +1s，相对间隔应不变
+           s().selectClip(refs2[0], 'replace');
+           const other = refs2.find((r) => r.trackId !== refs2[0].trackId);
+           if (other) s().selectClip(other, 'toggle');
+           const g0 = pick(refs2[0].clipId)?.start ?? 0;
+           const g1 = other ? (pick(other.clipId)?.start ?? 0) : g0;
+           const origins = s().selectedIds.map((id) => ({ clipId: id, start: pick(id)?.start ?? 0 }));
+           s().beginInteraction();
+           s().moveClipsAsGroup(origins, 1.0);
+           await wait(80);
+           const h0 = pick(refs2[0].clipId)?.start ?? 0;
+           const h1 = other ? (pick(other.clipId)?.start ?? 0) : h0;
+           out.groupMove = {
+             count: origins.length,
+             gapBefore: Math.round((g1 - g0) * 100) / 100,
+             gapAfter: Math.round((h1 - h0) * 100) / 100,
+             moved: Math.round((h0 - g0) * 100) / 100,
+           };
+           s().undo();
+           await wait(80);
+
+           // 方向键微调：单片段 +0.1s
+           s().selectClip(refs2[0], 'replace');
+           const n0 = pick(refs2[0].clipId)?.start ?? 0;
+           s().nudgeSelectedClips(0.1);
+           await wait(50);
+           out.nudge = Math.round(((pick(refs2[0].clipId)?.start ?? 0) - n0) * 100) / 100;
+           s().undo();
+           await wait(80);
+
+           // 整体夹到 0：先整体右移 5s，再整体左移 999s，应夹到 0 且组内相对位置不变
+           s().selectAllClips();
+           {
+             const c0 = s().tracks.flatMap((t) => t.clips);
+             const spread0 = Math.max(...c0.map((c) => c.start)) - Math.min(...c0.map((c) => c.start));
+             s().beginInteraction();
+             s().moveClipsAsGroup(c0.map((c) => ({ clipId: c.id, start: c.start })), 5);
+             await wait(60);
+             const c1 = s().tracks.flatMap((t) => t.clips);
+             const min1 = Math.min(...c1.map((c) => c.start));
+             s().beginInteraction();
+             s().moveClipsAsGroup(c1.map((c) => ({ clipId: c.id, start: c.start })), -999);
+             await wait(60);
+             const c2 = s().tracks.flatMap((t) => t.clips);
+             const min2 = Math.min(...c2.map((c) => c.start));
+             const spread2 = Math.max(...c2.map((c) => c.start)) - min2;
+             out.clamp = {
+               minAfterRight: Math.round(min1 * 100) / 100,
+               minAfterLeft: Math.round(min2 * 100) / 100,
+               shift: Math.round((min1 - min2) * 100) / 100,
+               spreadKept: Math.round((spread2 - spread0) * 100) / 100,
+             };
+             s().undo();
+             await wait(60);
+             s().undo();
+             await wait(60);
+           }
+         }
+
+         // ---- 配音与字幕独立控制：像素级验证「跟随 / 自定义 / 关闭」三态 ----
+         s().loadDemo('mystery');
+         await wait(300);
+         {
+           const voice = s().tracks.find((t) => t.type === 'voice');
+           const vclip = voice?.clips[0];
+           if (voice && vclip && window.__guiyiRender) {
+             const R = window.__guiyiRender;
+             const W = 960;
+             const H = 540;
+             const mats = s().materials;
+             await R.preloadImages(R.collectImageUrls(s().tracks, mats, window.api.assetUrl));
+
+             // 只取画面底部字幕带，做逐像素比对
+             const bandAt = (t, tracks) => {
+               const cv = document.createElement('canvas');
+               cv.width = W;
+               cv.height = H;
+               const ctx = cv.getContext('2d');
+               R.drawScene({
+                 ctx, tracks, materials: mats, currentTime: t,
+                 width: W, height: H, assetUrl: window.api.assetUrl, subtitleStyle: s().subtitleStyle,
+               });
+               return ctx.getImageData(0, Math.round(H * 0.8), W, Math.round(H * 0.2)).data;
+             };
+             const diffCount = (a, b) => {
+               let n = 0;
+               for (let i = 0; i < a.length; i += 4) {
+                 if (a[i] !== b[i] || a[i + 1] !== b[i + 1] || a[i + 2] !== b[i + 2]) n++;
+               }
+               return n;
+             };
+
+             const midT = vclip.start + vclip.duration / 2;
+             const followBand = bandAt(midT, s().tracks);
+             s().updateClip(voice.id, vclip.id, { subtitle: '' });
+             const hiddenBand = bandAt(midT, s().tracks);
+             s().updateClip(voice.id, vclip.id, { subtitle: '自定义字幕测试文本' });
+             const customBand = bandAt(midT, s().tracks);
+             const noVoiceBand = bandAt(
+               midT,
+               s().tracks.map((t) => (t.type === 'voice' ? { ...t, clips: [] } : t)),
+             );
+             out.subtitle = {
+               followVsHidden: diffCount(followBand, hiddenBand),
+               followVsCustom: diffCount(followBand, customBand),
+               hiddenEqualsNoVoiceTrack: diffCount(hiddenBand, noVoiceBand),
+             };
+
+             // 持久化：自定义字幕经保存 → 新建 → 打开后应保持
+             await s().saveProject();
+             s().newProject();
+             await wait(150);
+             await s().openProject();
+             await wait(250);
+             out.subtitlePersisted = s().tracks.find((t) => t.type === 'voice')?.clips[0]?.subtitle ?? null;
+           }
+         }
 
          // ---- 生成配音并导出（保持神秘复苏模板作为交付物） ----
          s().loadDemo('mystery');

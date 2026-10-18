@@ -31,7 +31,7 @@ const DROP_ALLOWED: Record<TrackType, string[]> = {
   expression: ['表情'],
   effect: ['特效'],
   voice: [],
-  sfx: ['音效'],
+  sfx: ['音效', '音乐'],
 }
 
 const CLIP_ICON: Record<TrackType, string> = {
@@ -59,8 +59,22 @@ const LABEL_W = 64
 
 type DragMode =
   | { mode: 'move'; trackId: string; clipId: string; grabX: number; duration: number }
+  | {
+      /** 群组拖动：锚点片段为光标抓取的那个，origins 为拖动前各选中片段的起点 */
+      mode: 'group'
+      anchorTrackId: string
+      anchorClipId: string
+      anchorStart: number
+      anchorDur: number
+      grabX: number
+      origins: Array<{ clipId: string; start: number }>
+    }
   | { mode: 'resize'; trackId: string; clipId: string; edge: 'l' | 'r'; origStart: number; origDur: number }
+  | { mode: 'marquee'; startX: number; startY: number; baseIds: string[] }
   | { mode: 'scrub' }
+
+/** 判定为「拖动」而不是「点击」的最小位移（px） */
+const DRAG_THRESHOLD = 4
 
 /** 吸附：把 value 吸附到最近的候选点上（阈值内） */
 function snapValue(value: number, candidates: number[], threshold: number): number {
@@ -90,6 +104,8 @@ const Timeline: React.FC = () => {
   const addTrack = useStore((s) => s.addTrack)
   const deleteTrack = useStore((s) => s.deleteTrack)
   const beginInteraction = useStore((s) => s.beginInteraction)
+  const moveClipsAsGroup = useStore((s) => s.moveClipsAsGroup)
+  const setSelection = useStore((s) => s.setSelection)
   const undo = useStore((s) => s.undo)
   const redo = useStore((s) => s.redo)
   const snapEnabled = useStore((s) => s.snapEnabled)
@@ -105,6 +121,7 @@ const Timeline: React.FC = () => {
   const justDragged = useRef(false)
   const [dragging, setDragging] = useState<string | null>(null)
   const [dropHint, setDropHint] = useState<string | null>(null)
+  const [marquee, setMarquee] = useState<{ x: number; y: number; w: number; h: number } | null>(null)
   const [addMenu, setAddMenu] = useState(false)
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; trackId: string; clipId: string } | null>(null)
 
@@ -130,6 +147,65 @@ const Timeline: React.FC = () => {
 
       if (ds.mode === 'scrub') {
         st.setCurrentTime(t)
+        return
+      }
+
+      if (ds.mode === 'marquee') {
+        const x1 = ds.startX - rect.left
+        const y1 = ds.startY - rect.top
+        const x2 = e.clientX - rect.left
+        const y2 = e.clientY - rect.top
+        if (Math.abs(x2 - x1) > DRAG_THRESHOLD || Math.abs(y2 - y1) > DRAG_THRESHOLD) {
+          justDragged.current = true
+        }
+        setMarquee({
+          x: Math.min(x1, x2),
+          y: Math.min(y1, y2),
+          w: Math.abs(x2 - x1),
+          h: Math.abs(y2 - y1),
+        })
+        // 命中测试用片段的实际 DOM 矩形，可跨轨道一并框选
+        const sel = {
+          left: Math.min(ds.startX, e.clientX),
+          top: Math.min(ds.startY, e.clientY),
+          right: Math.max(ds.startX, e.clientX),
+          bottom: Math.max(ds.startY, e.clientY),
+        }
+        const hits: string[] = []
+        areaRef.current.querySelectorAll<HTMLElement>('[data-clip-id]').forEach((el) => {
+          const r = el.getBoundingClientRect()
+          if (r.left < sel.right && r.right > sel.left && r.top < sel.bottom && r.bottom > sel.top) {
+            hits.push(el.dataset.clipId!)
+          }
+        })
+        setSelection(ds.baseIds.length > 0 ? [...new Set([...ds.baseIds, ...hits])] : hits)
+        return
+      }
+
+      if (ds.mode === 'group') {
+        // 群组平移：只做时间轴方向移动，保持组内相对位置
+        const cands: number[] = [0, st.currentTime]
+        st.tracks.forEach((tr) =>
+          tr.clips.forEach((c) => {
+            if (!st.selectedIds.includes(c.id)) {
+              cands.push(c.start)
+              cands.push(c.start + c.duration)
+            }
+          }),
+        )
+        const th = SNAP_PX / p
+        let targetDelta = t - ds.grabX - ds.anchorStart
+        if (st.snapEnabled) {
+          const anchorTarget = ds.anchorStart + targetDelta
+          const snappedStart = snapValue(anchorTarget, cands, th)
+          const snappedEnd = snapValue(anchorTarget + ds.anchorDur, cands, th)
+          let snapped = anchorTarget
+          if (snappedStart !== anchorTarget) snapped = snappedStart
+          else if (snappedEnd !== anchorTarget + ds.anchorDur) snapped = snappedEnd - ds.anchorDur
+          targetDelta = snapped - ds.anchorStart
+        }
+        moveClipsAsGroup(ds.origins, targetDelta)
+        justDragged.current = true
         return
       }
 
@@ -189,10 +265,24 @@ const Timeline: React.FC = () => {
         justDragged.current = true
       }
     }
-    const onUp = (): void => {
+    const onUp = (e: PointerEvent): void => {
+      const ds = dragState.current
       dragState.current = null
       setDragging(null)
+      setMarquee(null)
       document.body.style.cursor = ''
+      if (ds?.mode === 'marquee' && !justDragged.current && ds.baseIds.length === 0) {
+        // 未拖动 → 视为点击空白：移动播放头并清空选择
+        const rect = areaRef.current?.getBoundingClientRect()
+        if (rect) {
+          const st = useStore.getState()
+          st.setCurrentTime(Math.max(0, (e.clientX - rect.left - LABEL_W) / st.pxPerSec))
+        }
+        setSelection([])
+      } else if (ds?.mode === 'group' && !justDragged.current) {
+        // 群组内点击（未拖动）→ 收敛为单选
+        setSelection([ds.anchorClipId])
+      }
       setTimeout(() => {
         justDragged.current = false
       }, 0)
@@ -203,7 +293,7 @@ const Timeline: React.FC = () => {
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
     }
-  }, [moveClip, moveClipToTrack, resizeClip])
+  }, [moveClip, moveClipToTrack, resizeClip, moveClipsAsGroup, setSelection])
 
   // 关闭菜单
   useEffect(() => {
@@ -245,6 +335,21 @@ const Timeline: React.FC = () => {
     if (justDragged.current) return
     scrubTo(e.clientX)
     selectClip(null)
+  }
+
+  // 轨道空白处按下：开始框选；若未拖动则视为点击空白（移动播放头并清空选择）
+  const onLaneDown = (e: ReactPointerEvent): void => {
+    if (e.button !== 0) return
+    if ((e.target as HTMLElement).closest('.lane-label')) return
+    const additive = e.ctrlKey || e.metaKey || e.shiftKey
+    dragState.current = {
+      mode: 'marquee',
+      startX: e.clientX,
+      startY: e.clientY,
+      baseIds: additive ? useStore.getState().selectedIds : [],
+    }
+    document.body.style.cursor = 'crosshair'
+    if (!additive) setSelection([])
   }
 
   // 轨道拖放
@@ -293,9 +398,29 @@ const Timeline: React.FC = () => {
     const st = useStore.getState()
     const c = st.tracks.find((t) => t.id === trackId)?.clips.find((k) => k.id === clipId)
     if (!c) return
-    selectClip({ trackId, clipId })
+
+    // 已在多选集合内 → 直接进入群组拖动（不改变选择，整体平移）
+    const inMulti = st.selectedIds.length > 1 && st.selectedIds.includes(clipId)
+    if (!inMulti) selectClip({ trackId, clipId })
     beginInteraction()
-    dragState.current = { mode: 'move', trackId, clipId, grabX: x - c.start * st.pxPerSec, duration }
+
+    if (inMulti) {
+      const origins = st.tracks
+        .flatMap((t) => t.clips)
+        .filter((k) => st.selectedIds.includes(k.id))
+        .map((k) => ({ clipId: k.id, start: k.start }))
+      dragState.current = {
+        mode: 'group',
+        anchorTrackId: trackId,
+        anchorClipId: clipId,
+        anchorStart: c.start,
+        anchorDur: c.duration,
+        grabX: x - c.start * st.pxPerSec,
+        origins,
+      }
+    } else {
+      dragState.current = { mode: 'move', trackId, clipId, grabX: x - c.start * st.pxPerSec, duration }
+    }
     setDragging(clipId)
     document.body.style.cursor = 'grabbing'
   }
@@ -384,7 +509,7 @@ const Timeline: React.FC = () => {
                 }}
                 onDragLeave={() => setDropHint(null)}
                 onDrop={makeTrackDrop(track)}
-                onPointerDown={startScrub}
+                onPointerDown={onLaneDown}
                 onClick={startScrubClick}
               >
                 <span className="lane-label" style={{ color: TRACK_COLORS[track.type] }}>
@@ -431,12 +556,20 @@ const Timeline: React.FC = () => {
                     c.sourceDuration && c.sourceDuration > 0
                       ? Math.min(1, c.duration / c.sourceDuration)
                       : 1
+                  // 配音片段：提示字幕是否被独立修改/关闭
+                  const subtitleNote =
+                    track.type === 'voice' && c.subtitle !== undefined
+                      ? c.subtitle.trim() === ''
+                        ? '\n字幕：已关闭'
+                        : `\n字幕：${c.subtitle}`
+                      : ''
                   return (
                     <div
                       key={c.id}
+                      data-clip-id={c.id}
                       className={`tl-clip${isSelected ? ' selected' : ''}${isDragging ? ' dragging' : ''}`}
                       style={{ left, width, background: TRACK_COLORS[track.type] }}
-                      title={`${CLIP_ICON[track.type]} ${c.name}\n${c.duration.toFixed(1)}s · 起点 ${c.start.toFixed(1)}s\n拖动移动 · 边缘拉伸 · 可跨轨道 · 右键菜单`}
+                      title={`${CLIP_ICON[track.type]} ${c.name}\n${c.duration.toFixed(1)}s · 起点 ${c.start.toFixed(1)}s${subtitleNote}\n拖动移动 · 边缘拉伸 · 可跨轨道 · 右键菜单`}
                       onPointerDown={(e) => onClipDown(e, track.id, c.id, c.duration)}
                       onClick={(e) => {
                         e.stopPropagation()
@@ -484,6 +617,14 @@ const Timeline: React.FC = () => {
               </div>
             )
           })}
+
+          {/* 框选选择框 */}
+          {marquee && (
+            <div
+              className="tl-marquee"
+              style={{ left: marquee.x, top: marquee.y, width: marquee.w, height: marquee.h }}
+            />
+          )}
 
           {/* 播放头（独立组件，避免整条时间轴每帧重渲染） */}
           <Playhead labelWidth={LABEL_W} onScrubStart={onPlayheadDown} />

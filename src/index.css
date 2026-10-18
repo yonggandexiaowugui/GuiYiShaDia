@@ -205,6 +205,12 @@ button.ghost:hover { background: #3a3a3a; color: #eee; }
 .tl-handle-l { left: -3px; }
 .tl-handle-r { right: -3px; }
 
+/* 框选选择框 */
+.tl-marquee {
+  position: absolute; z-index: 9; pointer-events: none;
+  border: 1px solid #7ec8ff; background: rgba(126,200,255,0.14); border-radius: 2px;
+}
+
 .tl-add-wrap { position: relative; }
 .tl-add-menu {
   position: absolute; top: 30px; left: 0; z-index: 60; min-width: 120px; padding: 4px;
@@ -231,6 +237,12 @@ button.active { background: #0e639c; border-color: #0e639c; color: #fff; }
   width: 100%; background: #2d2d2d; border: 1px solid #3f3f3f; color: #e0e0e0;
   border-radius: 4px; padding: 6px 8px; font-size: 12px;
 }
+.form-row textarea {
+  width: 100%; background: #2d2d2d; border: 1px solid #3f3f3f; color: #e0e0e0;
+  border-radius: 4px; padding: 6px 8px; font-size: 12px; box-sizing: border-box;
+  font-family: inherit;
+}
+.form-hint { margin-top: 4px; font-size: 11px; color: #7a7a7a; }
 .panel-title { font-size: 13px; font-weight: 600; margin-bottom: 12px; color: #ccc; }
 .empty-hint { color: #555; text-align: center; padding: 24px 8px; }
 

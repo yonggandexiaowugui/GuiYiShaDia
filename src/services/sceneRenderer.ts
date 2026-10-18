@@ -201,10 +201,11 @@ export function drawScene(opts: DrawOptions): void {
     ctx.restore()
   }
 
-  // 字幕：显示当前激活的 voice clip 的 text
-  const voiceClip = active.find((a) => a.track.type === 'voice' && a.clip.text)
-  if (voiceClip?.clip.text) {
-    drawSubtitle(ctx, voiceClip.clip.text, w, h, subtitleStyle)
+  // 字幕：取第一条激活的配音片段；字幕文本独立于配音台词（未设置则跟随，空串则不显示）
+  const voiceClip = active.find((a) => a.track.type === 'voice')
+  if (voiceClip) {
+    const text = voiceClip.clip.subtitle ?? voiceClip.clip.text ?? ''
+    if (text.trim()) drawSubtitle(ctx, text, w, h, subtitleStyle)
   }
 }
 

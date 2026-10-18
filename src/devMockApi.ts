@@ -162,16 +162,26 @@ export function installDevMockApi(): void {
     importPSD: async () => [],
     importAudio: async () => MOCK_MATERIALS[11],
     importPSDLayers: async () => [],
+    // 浏览器调试模式：去背景依赖本地 ONNX 推理，明确不支持
+    removeBackground: async () => {
+      throw new Error('去背景仅在桌面版可用，请使用应用窗口操作')
+    },
     selectFiles: async () => [],
     assetUrl: (rel: string | null | undefined) => (rel ? rel : ''),
 
     getAIConfig: async () => ({
       llm: { apiBase: '', apiKey: '', model: '' },
       tts: { provider: 'local', localVoice: '', apiBase: '', apiKey: '', voiceId: '', speed: 1, pitch: 1 },
+      image: { provider: 'pollinations', apiBase: '', apiKey: '', model: '' },
     }),
     saveAIConfig: async (c: unknown) => c,
     testLLM: async () => ({ ok: false, message: '（mock）未配置' }),
     testTTS: async () => ({ ok: true, message: '（mock）试听音频已生成', dataUrl: beepWavDataUri(1.5) }),
+    generateImageMaterial: async () => ({
+      ok: false,
+      message: 'AI 生成素材仅在桌面版可用，请使用应用窗口操作',
+    }),
+    testImageGen: async () => ({ ok: false, message: '（mock）浏览器调试模式不支持' }),
     parseScript: async () => ({ ok: true, shots: DEMO_SHOTS }),
     regenerateShot: async (shot: Shot) => ({ ok: true, shot }),
 

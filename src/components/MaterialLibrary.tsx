@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useStore } from '../services/store'
 import { CATEGORIES, CATEGORY_ALL } from '@shared/types'
 import type { Material, MaterialCategory } from '@shared/types'
+import AIGenDialog from './AIGenDialog'
 
 const TABS: (typeof CATEGORY_ALL | MaterialCategory)[] = [CATEGORY_ALL, ...CATEGORIES]
 
@@ -25,8 +26,10 @@ const MaterialLibrary: React.FC = () => {
   const importFiles = useStore((s) => s.importFiles)
   const updateMaterial = useStore((s) => s.updateMaterial)
   const deleteMaterial = useStore((s) => s.deleteMaterial)
+  const pushToast = useStore((s) => s.pushToast)
 
   const [ctxMenu, setCtxMenu] = useState<CtxMenu | null>(null)
+  const [aiDialog, setAiDialog] = useState(false)
 
   useEffect(() => {
     void loadMaterials()
@@ -99,6 +102,32 @@ const MaterialLibrary: React.FC = () => {
     }
   }
 
+  // 一键去背景：仅图片素材；本地推理约几秒，产出新素材
+  const [bgRemoving, setBgRemoving] = useState<string | null>(null)
+  const ctxRemoveBg = (): void => {
+    if (!ctxMenu) return
+    const m = ctxMenu.material
+    setCtxMenu(null)
+    if (!/\.(png|jpe?g|webp)$/i.test(m.file_path)) {
+      pushToast('仅图片素材支持去背景')
+      return
+    }
+    setBgRemoving(m.id)
+    pushToast(`「${m.name}」去背景中…（约几秒）`)
+    window.api
+      .removeBackground(m.id)
+      .then((created) => {
+        pushToast(`已生成「${created.name}」`)
+      })
+      .catch((e) => {
+        pushToast('去背景失败：' + (e instanceof Error ? e.message : String(e)))
+      })
+      .finally(() => {
+        setBgRemoving(null)
+        void loadMaterials()
+      })
+  }
+
   return (
     <aside className="material-library">
       <div className="category-tabs">
@@ -116,6 +145,9 @@ const MaterialLibrary: React.FC = () => {
           onChange={(e) => setSearch(e.target.value)}
           placeholder="搜索名称 / 标签…"
         />
+        <button className="primary" onClick={() => setAiDialog(true)} title="AI 生成素材（免配置公共源 / 自定义 API）">
+          ✨ AI 生成
+        </button>
         <button className="primary" onClick={() => void importFiles()} disabled={importing}>
           {importing ? '导入中…' : '导入'}
         </button>
@@ -159,6 +191,8 @@ const MaterialLibrary: React.FC = () => {
         ))}
       </div>
 
+      {aiDialog && <AIGenDialog onClose={() => setAiDialog(false)} />}
+
       {ctxMenu && (
         <div className="ctx-menu" style={{ left: ctxMenu.x, top: ctxMenu.y }}>
           <button onClick={ctxRename}>✏ 重命名…</button>
@@ -171,6 +205,9 @@ const MaterialLibrary: React.FC = () => {
             </button>
           ))}
           <div className="ctx-sep" />
+          <button onClick={ctxRemoveBg} disabled={bgRemoving !== null}>
+            {bgRemoving === ctxMenu.material.id ? '✂ 去背景中…' : '✂ 一键去背景'}
+          </button>
           <button onClick={ctxShowInFolder}>📂 打开所在文件夹</button>
           <button className="danger" onClick={ctxDelete}>
             🗑 删除素材

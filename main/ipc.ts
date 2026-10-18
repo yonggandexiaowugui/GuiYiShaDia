@@ -22,8 +22,10 @@ import {
   updateMaterial,
 } from './database'
 import { importAudio, importImage } from './media'
+import { removeMaterialBackground } from './bgremove'
 import { exportPSDLayers, parsePSD } from './psd'
 import { getAIConfig, generateVoiceover, parseScript, regenerateShot, saveAIConfig, testLLM, testTTS } from './ai'
+import { generateImageMaterial, testImageGen } from './imagegen'
 import { listLocalVoices } from './tts'
 import { cancelExport, finishExport, pickExportPath, startExport, writeFrame } from './exporter'
 import { autosaveProject, clearAutosave, openProjectFile, readAutosave, saveProjectFile } from './project'
@@ -58,6 +60,7 @@ export function registerIpc(): void {
 
   // ---- 媒体导入（M1） ----
   ipcMain.handle('media:importImage', (_e, filePath: string) => importImage(filePath))
+  ipcMain.handle('media:removeBackground', (_e, materialId: string) => removeMaterialBackground(materialId))
   ipcMain.handle('media:importAudio', (_e, filePath: string) => importAudio(filePath))
   ipcMain.handle('media:importPSD', (_e, filePath: string) => parsePSD(filePath))
   ipcMain.handle('media:importPSDLayers', (_e, filePath: string, items: PsdLayerImportItem[]) =>
@@ -69,6 +72,10 @@ export function registerIpc(): void {
   ipcMain.handle('ai:saveConfig', (_e, config: Partial<ReturnType<typeof getAIConfig>>) => saveAIConfig(config))
   ipcMain.handle('ai:testLLM', (_e, config: Parameters<typeof testLLM>[0]) => testLLM(config))
   ipcMain.handle('ai:testTTS', (_e, config: Parameters<typeof testTTS>[0]) => testTTS(config))
+  ipcMain.handle('ai:generateImage', (_e, prompt: string, category: Parameters<typeof generateImageMaterial>[1]) =>
+    generateImageMaterial(prompt, category),
+  )
+  ipcMain.handle('ai:testImageGen', (_e, config: Parameters<typeof testImageGen>[0]) => testImageGen(config))
   ipcMain.handle('ai:parseScript', (_e, script: string, sampleShots?: Shot[]) => parseScript(script, sampleShots))
   ipcMain.handle('ai:regenShot', (_e, shot: Shot) => regenerateShot(shot))
 

@@ -238,7 +238,7 @@ export function deleteMaterial(id: string): boolean {
 // AI 配置（key/value JSON）
 // ---------------------------------------------------------------------------
 
-export function getAIConfigValue(key: 'llm' | 'tts'): unknown | null {
+export function getAIConfigValue(key: 'llm' | 'tts' | 'image'): unknown | null {
   const d = getDb()
   const row = d.prepare('SELECT value FROM ai_config WHERE key = ?').get(key) as
     | { value: string }
@@ -246,7 +246,7 @@ export function getAIConfigValue(key: 'llm' | 'tts'): unknown | null {
   return row ? JSON.parse(row.value) : null
 }
 
-export function saveAIConfigValue(key: 'llm' | 'tts', value: unknown): void {
+export function saveAIConfigValue(key: 'llm' | 'tts' | 'image', value: unknown): void {
   const d = getDb()
   d.prepare('INSERT INTO ai_config (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').run(
     key,

@@ -10,6 +10,7 @@ import type {
   AIConfig,
   AIResult,
   Emotion,
+  ImageGenConfig,
   LLMConfig,
   ParseScriptResult,
   RegenShotResult,
@@ -210,15 +211,18 @@ export async function testTTS(config: TTSConfig): Promise<TTSResult> {
 export function getAIConfig(): AIConfig {
   const llm = getAIConfigValue('llm') as LLMConfig | null
   const tts = getAIConfigValue('tts') as TTSConfig | null
+  const image = getAIConfigValue('image') as ImageGenConfig | null
   return {
     llm: llm ?? { apiBase: '', apiKey: '', model: '' },
     tts: tts ?? { provider: 'local', apiBase: '', apiKey: '', voiceId: '', speed: 1, pitch: 1 },
+    image: image ?? { provider: 'pollinations', apiBase: '', apiKey: '', model: '' },
   }
 }
 
 export function saveAIConfig(config: Partial<AIConfig>): AIConfig {
   if (config.llm) saveAIConfigValue('llm', config.llm)
   if (config.tts) saveAIConfigValue('tts', config.tts)
+  if (config.image) saveAIConfigValue('image', config.image)
   return getAIConfig()
 }
 

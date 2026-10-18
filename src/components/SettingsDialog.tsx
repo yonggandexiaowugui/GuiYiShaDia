@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useStore } from '../services/store'
-import type { AIConfig, SubtitleStyle, TTSConfig, LLMConfig } from '@shared/types'
+import type { AIConfig, ImageGenConfig, SubtitleStyle, TTSConfig, LLMConfig } from '@shared/types'
 
 const EMPTY_TTS: TTSConfig = {
   provider: 'local',
@@ -12,6 +12,13 @@ const EMPTY_TTS: TTSConfig = {
   pitch: 1,
 }
 
+const EMPTY_IMAGE: ImageGenConfig = {
+  provider: 'pollinations',
+  apiBase: '',
+  apiKey: '',
+  model: '',
+}
+
 const SettingsDialog: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const pushToast = useStore((s) => s.pushToast)
   const subtitleStyle = useStore((s) => s.subtitleStyle)
@@ -20,10 +27,13 @@ const SettingsDialog: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const setExportSettings = useStore((s) => s.setExportSettings)
   const [tts, setTts] = useState<TTSConfig>(EMPTY_TTS)
   const [llm, setLlm] = useState<LLMConfig>({ apiBase: '', apiKey: '', model: '' })
+  const [imageCfg, setImageCfg] = useState<ImageGenConfig>(EMPTY_IMAGE)
   const [voices, setVoices] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
+  const [imgTesting, setImgTesting] = useState(false)
+  const [imgTestMsg, setImgTestMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null)
   const [previewMsg, setPreviewMsg] = useState<{ kind: 'busy' | 'ok' | 'err'; text: string } | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
@@ -33,6 +43,7 @@ const SettingsDialog: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         const cfg: AIConfig = await window.api.getAIConfig()
         setTts({ ...EMPTY_TTS, ...cfg.tts })
         setLlm(cfg.llm)
+        setImageCfg({ ...EMPTY_IMAGE, ...cfg.image })
       } catch (e) {
         pushToast('读取设置失败：' + (e instanceof Error ? e.message : String(e)))
       }
@@ -48,12 +59,32 @@ const SettingsDialog: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const save = async (): Promise<void> => {
     setSaving(true)
     try {
-      await window.api.saveAIConfig({ tts, llm })
+      await window.api.saveAIConfig({ tts, llm, image: imageCfg })
       pushToast('设置已保存')
     } catch (e) {
       pushToast('保存失败：' + (e instanceof Error ? e.message : String(e)))
     } finally {
       setSaving(false)
+    }
+  }
+
+  /** 测试绘图通道连通性（用界面上的配置，先保存再测） */
+  const testImage = async (): Promise<void> => {
+    if (imgTesting) return
+    setImgTesting(true)
+    setImgTestMsg(null)
+    try {
+      await window.api.saveAIConfig({ image: imageCfg })
+      const res = await window.api.testImageGen(imageCfg)
+      setImgTestMsg(
+        res.ok
+          ? { kind: 'ok', text: `✓ ${res.message ?? '连通正常'}` }
+          : { kind: 'err', text: `⚠ ${res.message ?? '测试失败'}` },
+      )
+    } catch (e) {
+      setImgTestMsg({ kind: 'err', text: '⚠ ' + (e instanceof Error ? e.message : String(e)) })
+    } finally {
+      setImgTesting(false)
     }
   }
 
@@ -286,6 +317,72 @@ const SettingsDialog: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           </div>
           <div className="settings-hint">
             分辨率跟随预览方向（横屏 1920×1080 / 竖屏 1080×1920）。导出参数会随工程一起保存。
+          </div>
+
+          <div className="settings-section" style={{ marginTop: 18 }}>AI 绘图（素材生成）</div>
+          <div className="form-row">
+            <label>图片来源</label>
+            <div className="radio-row">
+              <label className="radio">
+                <input
+                  type="radio"
+                  checked={(imageCfg.provider ?? 'pollinations') === 'pollinations'}
+                  onChange={() => setImageCfg({ ...imageCfg, provider: 'pollinations' })}
+                />
+                免配置公共源（免费 · 需联网）
+              </label>
+              <label className="radio">
+                <input
+                  type="radio"
+                  checked={imageCfg.provider === 'custom'}
+                  onChange={() => setImageCfg({ ...imageCfg, provider: 'custom' })}
+                />
+                自定义 API（OpenAI 兼容）
+              </label>
+            </div>
+          </div>
+
+          {imageCfg.provider === 'custom' && (
+            <>
+              <div className="form-row">
+                <label>接口地址</label>
+                <input
+                  value={imageCfg.apiBase}
+                  onChange={(e) => setImageCfg({ ...imageCfg, apiBase: e.target.value })}
+                  placeholder="https://api.xxx.com/v1"
+                />
+              </div>
+              <div className="form-row">
+                <label>API Key</label>
+                <input
+                  type="password"
+                  value={imageCfg.apiKey}
+                  onChange={(e) => setImageCfg({ ...imageCfg, apiKey: e.target.value })}
+                  placeholder="Bearer Token"
+                />
+              </div>
+              <div className="form-row">
+                <label>模型</label>
+                <input
+                  value={imageCfg.model}
+                  onChange={(e) => setImageCfg({ ...imageCfg, model: e.target.value })}
+                  placeholder="如 doubao-seedream-3-0-t2i / dall-e-3"
+                />
+              </div>
+            </>
+          )}
+
+          <button
+            className="btn"
+            style={{ width: '100%' }}
+            onClick={() => void testImage()}
+            disabled={imgTesting}
+          >
+            {imgTesting ? '⏳ 测试中…' : '🔧 测试连通（生成一张小图，不入库）'}
+          </button>
+          {imgTestMsg && <div className={`preview-msg ${imgTestMsg.kind}`}>{imgTestMsg.text}</div>}
+          <div className="settings-hint">
+            公共源免费档：每 45 秒 1 张、右下角带来源水印，偶尔排队较慢；自定义 API 无水印无限制。生成的素材可在素材库右键重命名/打标签。
           </div>
 
           <div className="settings-section" style={{ marginTop: 18 }}>AI 剧本（大模型）</div>

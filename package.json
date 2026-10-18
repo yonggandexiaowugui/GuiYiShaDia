@@ -9,17 +9,33 @@
   "build": {
     "appId": "com.guiyishadiao.app",
     "productName": "诡异沙雕",
-    "files": ["dist/**", "dist-electron/**"],
+    "files": [
+      "dist/**",
+      "dist-electron/**"
+    ],
     "extraResources": [
       {
         "from": "node_modules/ffmpeg-static",
         "to": "ffmpeg",
-        "filter": ["ffmpeg*"]
+        "filter": [
+          "ffmpeg*"
+        ]
       },
       {
         "from": "resources/ffmpeg",
         "to": "ffmpeg",
-        "filter": ["ffmpeg*", "ffprobe*", "*.dll"]
+        "filter": [
+          "ffmpeg*",
+          "ffprobe*",
+          "*.dll"
+        ]
+      },
+      {
+        "from": "node_modules/@imgly/background-removal-node/dist",
+        "to": "bg-removal",
+        "filter": [
+          "**/*"
+        ]
       }
     ]
   },
@@ -34,6 +50,7 @@
     "pack:win": "npm run build && npm run prepare:ffmpeg && electron-builder --win"
   },
   "dependencies": {
+    "@imgly/background-removal-node": "^1.4.5",
     "ag-psd": "^19.0.0",
     "better-sqlite3": "^11.10.0",
     "ffmpeg-static": "^5.3.0",

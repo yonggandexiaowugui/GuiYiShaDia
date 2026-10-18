@@ -15,6 +15,7 @@ const api: GuiYiShaDiaoApi = {
   importPSD: (filePath) => ipcRenderer.invoke('media:importPSD', filePath),
   importAudio: (filePath) => ipcRenderer.invoke('media:importAudio', filePath),
   importPSDLayers: (filePath, items) => ipcRenderer.invoke('media:importPSDLayers', filePath, items),
+  removeBackground: (materialId) => ipcRenderer.invoke('media:removeBackground', materialId),
   selectFiles: () => ipcRenderer.invoke('files:select'),
   assetUrl: (relPath) => {
     if (!relPath) return ''
@@ -27,6 +28,8 @@ const api: GuiYiShaDiaoApi = {
   saveAIConfig: (config) => ipcRenderer.invoke('ai:saveConfig', config),
   testLLM: (config) => ipcRenderer.invoke('ai:testLLM', config),
   testTTS: (config) => ipcRenderer.invoke('ai:testTTS', config),
+  generateImageMaterial: (prompt, category) => ipcRenderer.invoke('ai:generateImage', prompt, category),
+  testImageGen: (config) => ipcRenderer.invoke('ai:testImageGen', config),
   parseScript: (script, sampleShots) => ipcRenderer.invoke('ai:parseScript', script, sampleShots),
   regenerateShot: (shot) => ipcRenderer.invoke('ai:regenShot', shot),
 

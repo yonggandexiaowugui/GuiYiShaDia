@@ -16,7 +16,7 @@ export default defineConfig({
           build: {
             outDir: 'dist-electron/main',
             rollupOptions: {
-              external: ['better-sqlite3', 'sharp', 'ag-psd', 'ffmpeg-static'],
+              external: ['better-sqlite3', 'sharp', 'ag-psd', 'ffmpeg-static', '@imgly/background-removal-node', 'onnxruntime-node'],
             },
           },
         },

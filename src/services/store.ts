@@ -234,10 +234,10 @@ export const DEMO_PRESETS: DemoPreset[] = [
     id: 'mystery',
     label: '神秘复苏 · 深夜街头',
     shots: [
-      { id: 'd1', index: 1, scene: '午夜街道', character: '大方脸·平静', expression: '', action: '缓步前行', dialogue: '这条街……怎么一个人都没有。', emotion: '平静', duration: 3, motion: 'zoom' },
-      { id: 'd2', index: 2, scene: '午夜街道', character: '大方脸·害怕', expression: '', action: '猛然回头', dialogue: '谁？！出来！', emotion: '害怕', duration: 2.4, motion: 'shake' },
-      { id: 'd3', index: 3, scene: '诡异走廊', character: '大方脸·愤怒', expression: '', action: '缓缓逼近', dialogue: '你逃不掉的。', emotion: '愤怒', duration: 3, motion: 'slideL' },
-      { id: 'd4', index: 4, scene: '深夜卧室', character: '大方脸·害怕', expression: '', action: '无力跪地', dialogue: '我……这具身体里，为什么这么痛。', emotion: '悲伤', duration: 3.2, motion: 'idle' },
+      { id: 'd1', index: 1, scene: '午夜街道', character: '小菱·绑骨', expression: '', action: '缓步前行', dialogue: '这条街……怎么一个人都没有。', emotion: '平静', duration: 3, motion: 'zoom' },
+      { id: 'd2', index: 2, scene: '午夜街道', character: '小菱·绑骨', expression: '', action: '受惊后退', dialogue: '谁？！出来！', emotion: '害怕', duration: 2.4, motion: 'shake' },
+      { id: 'd3', index: 3, scene: '诡异走廊', character: '小菱·绑骨', expression: '', action: '指向前方', dialogue: '你逃不掉的。', emotion: '愤怒', duration: 3, motion: 'slideL' },
+      { id: 'd4', index: 4, scene: '深夜卧室', character: '小菱·绑骨', expression: '', action: '无力跪地', dialogue: '我……这具身体里，为什么这么痛。', emotion: '悲伤', duration: 3.2, motion: 'idle' },
     ],
     fx: [
       { kw: '感叹号', start: 3.1, duration: 1.6 },
@@ -287,6 +287,22 @@ export const DEMO_PRESETS: DemoPreset[] = [
     ],
   },
 ]
+
+/** 动作词 → 骨骼动作 clip id（绑骨角色自动配动作；未命中走渲染默认 idle） */
+function rigClipForAction(action: string | undefined): string | undefined {
+  if (!action) return undefined
+  const rules: Array<[RegExp, string]> = [
+    [/跪|瘫/, 'kneel'],
+    [/倒地|晕|昏倒/, 'collapse'],
+    [/指/, 'point'],
+    [/伸手|挽留/, 'reach'],
+    [/后退|逃|跑|躲/, 'step-back'],
+    [/转身|离开|离去/, 'turn-away'],
+    [/上前|逼近|迈步|走近|前行|走进/, 'step-forward'],
+    [/说|问|喊|宣布|质问/, 'talk'],
+  ]
+  return rules.find(([re]) => re.test(action))?.[1]
+}
 
 /** 将 AI 返回的 Shot[] 拆分到各轨道 */
 function shotsToTracks(shots: Shot[], materials: Material[]): Track[] {
@@ -348,6 +364,7 @@ function shotsToTracks(shots: Shot[], materials: Material[]): Track[] {
         duration: dur,
         motion: sh.motion,
         emotion: sh.emotion,
+        rigClipId: rigClipForAction(sh.action),
       })
     }
 
